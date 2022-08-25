@@ -1,0 +1,44 @@
+[package]
+name = "veronymous-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "1.0.32"
+reqwest = { version = "0.11.11", features = ["blocking", "multipart", "json"] }
+serde = { version = "1.0.133", features = ["derive"] }
+base64 = "0.13.0"
+serde_json = "1.0.83"
+tonic = "0.6"
+prost = "0.9"
+rand = "0.7"
+lazy_static = "1.4.0"
+regex = "1.6.0"
+
+[dependencies.veronymous_connection]
+git = "ssh://git@github.com/boumba100/veronymous.git"
+rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+
+[dependencies.veronymous_router_client]
+git = "ssh://git@github.com/boumba100/veronymous.git"
+rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+
+[dependencies.veronymous_token]
+git = "ssh://git@github.com/boumba100/veronymous.git"
+rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+
+[dependencies.ps_signatures]
+git = "ssh://git@github.com/boumba100/veronymous.git"
+rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+
+[dependencies.crypto_common]
+git = "ssh://git@github.com/boumba100/veronymous.git"
+rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+
+[build-dependencies]
+tonic-build = "0.6"
+
+[dev-dependencies]
+tokio = { version = "1.20.1", features = ["rt", "macros"] }

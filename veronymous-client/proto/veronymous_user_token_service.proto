@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package veronymous_user_token_service;
+
+service VeronymousUserTokenService {
+  rpc GetToken(TokenRequest) returns (TokenResponse);
+
+  rpc GetNextToken(TokenRequest) returns (TokenResponse);
+
+  rpc GetTokenInfo(TokenInfoRequest) returns (TokenInfo);
+
+  rpc GetNextTokenInfo(TokenInfoRequest) returns (TokenInfo);
+}
+
+message TokenRequest {
+  bytes token_request = 2;
+}
+
+message TokenResponse {
+  bytes token_response = 1;
+}
+
+message TokenInfoRequest {}
+
+message TokenInfo {
+  bytes params = 1;
+
+  bytes public_key = 2;
+
+  uint64 key_lifetime = 3;
+}
