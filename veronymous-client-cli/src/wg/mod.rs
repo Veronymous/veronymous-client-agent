@@ -16,7 +16,7 @@ pub fn wg_down() -> Result<(), ClientError> {
     Ok(())
 }
 
-pub fn wg_up(connection: &VpnConnection) -> Result<(), ClientError> {
+pub fn wg_up(connection: &VpnConnection, tunnel_only: bool) -> Result<(), ClientError> {
     // Tear down existing connection
     wg_down()?;
 
@@ -38,12 +38,14 @@ pub fn wg_up(connection: &VpnConnection) -> Result<(), ClientError> {
 
     start_wg_interface()?;
 
-    configure_routing()?;
+    if !tunnel_only {
+        configure_routing()?;
+    }
 
     Ok(())
 }
 
-pub fn wg_refresh(connection: &VpnConnection) -> Result<(), ClientError> {
+pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), ClientError> {
     // Flush wireguard addresses
     flush_wg_addresses()?;
 
@@ -61,14 +63,15 @@ pub fn wg_refresh(connection: &VpnConnection) -> Result<(), ClientError> {
         &connection.wg_endpoint,
     )?;
 
-    configure_routing()?;
+    if !tunnel_only {
+        configure_routing()?;
+    }
 
     Ok(())
 }
 
 /*
 * Create wireguard network interface
-* TODO: Don't create if it already exists
 */
 fn create_wg_interface() -> Result<(), ClientError> {
     run_command(&format!("ip link add dev veron0 type wireguard"))?;

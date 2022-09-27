@@ -33,12 +33,16 @@ impl VpnClient {
         Ok(Self { veronymous_client })
     }
 
-    pub async fn connect(&mut self, vpn_profile: String) -> Result<(), ClientError> {
+    pub async fn connect(
+        &mut self,
+        vpn_profile: String,
+        tunnel_only: bool,
+    ) -> Result<(), ClientError> {
         info!("Connecting...");
 
         let connection = self.create_connection(&vpn_profile).await?;
 
-        wg_up(&connection)?;
+        wg_up(&connection, tunnel_only)?;
         info!("Connected.");
 
         loop {
@@ -52,7 +56,7 @@ impl VpnClient {
 
             let connection = self.create_connection(&vpn_profile).await?;
 
-            wg_refresh(&connection)?;
+            wg_refresh(&connection, tunnel_only)?;
 
             info!("Connected.");
         }

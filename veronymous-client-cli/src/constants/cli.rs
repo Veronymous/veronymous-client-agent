@@ -8,3 +8,4 @@ pub const CONNECT_COMMAND: &str = "connect";
 pub const CONNECT_COMMAND_ABOUT: &str = "Connect to a Veronymous VPN server.";
 pub const CONNECT_COMMAND_VERSION: &str = "0.1";
 pub const VPN_PROFILE_ARG: &str = "VPN_PROFILE";
+pub const TUNNEL_ONLY_ARG: &str = "TUNNEL_ONLY";
