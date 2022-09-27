@@ -44,11 +44,11 @@ impl VpnClient {
         loop {
             let delay = Self::get_refresh_start();
 
-            info!("Refreshing connection in {}s", delay.as_secs());
+            info!("Updating connection in {}s", delay.as_secs());
 
             thread::sleep(delay);
 
-            info!("Connecting...");
+            info!("Update connection...");
 
             let connection = self.create_connection(&vpn_profile).await?;
 
