@@ -158,7 +158,7 @@ fn configure_routing() -> Result<(), ClientError> {
 }
 
 fn run_command(command: &String) -> Result<String, ClientError> {
-    println!("{}", command);
+    debug!("{}", command);
     let out = Command::new("sh")
         .arg("-c")
         .arg(command)

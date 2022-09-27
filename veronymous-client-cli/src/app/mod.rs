@@ -18,7 +18,7 @@ pub async fn run() {
     if let Some(matches) = matches.subcommand_matches(CONNECT_COMMAND) {
         run_connect(matches).await;
     } else {
-        println!("Command is not supported.");
+        debug!("Command is not supported.");
     }
 }
 
@@ -48,11 +48,11 @@ async fn connect(vpn_profile: &String, client: &mut VpnClient) -> RedoRequired {
                     return true;
                 }
                 _ => {
-                    println!("An error has occurred. {:?}", error)
+                    error!("An error has occurred. {:?}", error);
                 }
             },
             _ => {
-                println!("An error has occurred. {:?}", error);
+                error!("An error has occurred. {:?}", error);
             }
         },
     }
@@ -72,14 +72,14 @@ async fn user_auth(client: &VpnClient) {
         Err(e) => match e {
             ClientError::VeronymousClientError(e) => match e {
                 VeronymousClientError::OidcError(_) => {
-                    println!("Authentication failed.");
+                    error!("Authentication failed.");
                 }
                 _ => {
-                    println!("An error has occurred. {:?}", e);
+                    error!("An error has occurred. {:?}", e);
                 }
             },
             _ => {
-                println!("An error has occurred. {:?}", e);
+                error!("An error has occurred. {:?}", e);
             }
         },
     }
@@ -87,10 +87,11 @@ async fn user_auth(client: &VpnClient) {
 
 fn set_disconnect_handler() {
     ctrlc::set_handler(move || {
-        println!("Received Exit Signal!");
+        info!("Received Exit Signal!");
 
         disconnect();
-    }).expect("Could not set ctrl-c handler.");
+    })
+    .expect("Could not set ctrl-c handler.");
 }
 
 fn disconnect() {
@@ -99,7 +100,7 @@ fn disconnect() {
             std::process::exit(0);
         }
         Err(e) => {
-            println!(
+            error!(
                 "Encountered an error when tearing down the connection. {:?}",
                 e
             );

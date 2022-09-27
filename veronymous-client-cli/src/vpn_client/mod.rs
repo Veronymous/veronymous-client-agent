@@ -34,26 +34,27 @@ impl VpnClient {
     }
 
     pub async fn connect(&mut self, vpn_profile: String) -> Result<(), ClientError> {
-        println!("Creating connection...");
+        info!("Connecting...");
 
         let connection = self.create_connection(&vpn_profile).await?;
 
         wg_up(&connection)?;
+        info!("Connected.");
 
         loop {
             let delay = Self::get_refresh_start();
 
-            println!("Refreshing connection in {}s", delay.as_secs());
+            info!("Refreshing connection in {}s", delay.as_secs());
 
             thread::sleep(delay);
 
-            println!("Creating new connection...");
+            info!("Connecting...");
 
             let connection = self.create_connection(&vpn_profile).await?;
 
-            println!("Configuring connection...");
-
             wg_refresh(&connection)?;
+
+            info!("Connected.");
         }
     }
 
