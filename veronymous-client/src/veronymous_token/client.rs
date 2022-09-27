@@ -7,7 +7,7 @@ use tonic::transport::Channel;
 use veronymous_token::root::RootVeronymousToken;
 use veronymous_token::root_exchange::{complete_root_token, create_root_token_request, RootTokenResponse};
 use veronymous_token::serde::Serializable as TokenSerializable;
-use crate::constants::{EPOCH_BUFFER, EPOCH_LENGTH};
+use crate::constants::KEY_LIFETIME;
 use crate::error::VeronymousClientError;
 use crate::error::VeronymousClientError::TokenClientError;
 use crate::veronymous_token::grpc::veronymous_user_token_service::{TokenInfo, TokenInfoRequest, TokenRequest};
@@ -38,13 +38,14 @@ impl VeronymousTokenClient {
         issuer_key_params: &PsParams,
         issuer_key: &PsPublicKey,
         access_token: &String,
-        current_epoch: u64,
+        key_epoch: u64,
+        epoch: u64,
     ) -> Result<RootVeronymousToken, VeronymousClientError> {
         // Generate the token id and blinding
         let token_id = rand_non_zero_fr(&mut thread_rng());
         let blinding = rand_non_zero_fr(&mut thread_rng());
 
-        let is_next_epoch = Self::is_next_epoch(current_epoch);
+        let is_next_epoch = Self::is_next_epoch(key_epoch, epoch);
 
         let access_token = Self::assemble_access_token(access_token)?;
 
@@ -74,7 +75,7 @@ impl VeronymousTokenClient {
             &issuer_key,
             &issuer_key_params,
         )
-            .map_err(|e| TokenClientError(format!("Could not complete root token. {:?}", e)))?;
+        .map_err(|e| TokenClientError(format!("Could not complete root token. {:?}", e)))?;
 
         Ok(root_token)
     }
@@ -82,9 +83,10 @@ impl VeronymousTokenClient {
     pub async fn get_token_info(
         &mut self,
         epoch: u64,
+        key_epoch: u64,
         access_token: &String,
     ) -> Result<(PsPublicKey, PsParams), VeronymousClientError> {
-        let is_next_epoch = Self::is_next_epoch(epoch);
+        let is_next_epoch = Self::is_next_epoch(key_epoch, epoch);
 
         let access_token = Self::assemble_access_token(access_token)?;
 
@@ -195,17 +197,10 @@ impl VeronymousTokenClient {
         Ok(access_token)
     }
 
-    // Check if the current epoch is the next one (buffer)
-    fn is_next_epoch(current_epoch: u64) -> bool {
-        let remainder = current_epoch % EPOCH_LENGTH;
+    // Check if the epoch belongs to the next key epoch
+    fn is_next_epoch(key_epoch: u64, epoch: u64) -> bool {
+        let next_key_epoch = key_epoch + KEY_LIFETIME;
 
-        // If in the buffer send the next epoch
-        if EPOCH_BUFFER > (EPOCH_LENGTH - remainder) {
-            //current_epoch + EPOCH_LENGTH
-            true
-        } else {
-            //current_epoch
-            false
-        }
+        return epoch >= next_key_epoch;
     }
 }

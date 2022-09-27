@@ -1,0 +1,196 @@
+use crate::constants::app::CLIENT_FILE_PATH;
+use crate::constants::veronymous::{OIDC_CLIENT_ID, OIDC_ENDPOINT, TOKEN_ENDPOINT};
+use crate::error::ClientError;
+use crate::error::ClientError::{
+    EncodingError, InitializationError, IoError, ParseError, ReadFileError,
+};
+use crate::utils::path_utils::get_home_path;
+use crate::wg::{wg_refresh, wg_up};
+use std::path::Path;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{fs, thread};
+use veronymous_client::client::state::{ClientState, VpnConnection};
+use veronymous_client::client::VeronymousClient;
+use veronymous_client::constants::{EPOCH_BUFFER, EPOCH_LENGTH};
+use veronymous_client::oidc::client::OidcClient;
+use veronymous_client::oidc::credentials::UserCredentials;
+use veronymous_client::veronymous_token::client::VeronymousTokenClient;
+use veronymous_client::vpn::VpnProfile;
+use veronymous_token::token::get_next_epoch;
+
+pub struct VpnClient {
+    veronymous_client: VeronymousClient,
+}
+
+impl VpnClient {
+    pub async fn create() -> Result<Self, ClientError> {
+        let oidc_client = OidcClient::new(OIDC_ENDPOINT.to_string(), OIDC_CLIENT_ID.to_string());
+        let token_client = VeronymousTokenClient::create(TOKEN_ENDPOINT.to_string())
+            .await
+            .map_err(|e| InitializationError(e.to_string()))?;
+
+        let veronymous_client = VeronymousClient::new(oidc_client, token_client);
+        Ok(Self { veronymous_client })
+    }
+
+    pub async fn connect(&mut self, vpn_profile: String) -> Result<(), ClientError> {
+        println!("Creating connection...");
+
+        let connection = self.create_connection(&vpn_profile).await?;
+
+        wg_up(&connection)?;
+
+        loop {
+            let delay = Self::get_refresh_start();
+
+            println!("Refreshing connection in {}s", delay.as_secs());
+
+            thread::sleep(delay);
+
+            println!("Creating new connection...");
+
+            let connection = self.create_connection(&vpn_profile).await?;
+
+            println!("Configuring connection...");
+
+            wg_refresh(&connection)?;
+        }
+    }
+
+    pub async fn authenticate(
+        &self,
+        username: String,
+        password: String,
+    ) -> Result<(), ClientError> {
+        let credentials = UserCredentials::new(username, password);
+
+        // read the client state
+        let mut client_state = Self::read_client_state(None)?;
+
+        self.veronymous_client
+            .authenticate(&credentials, &mut client_state)
+            .await
+            .map_err(|e| ClientError::VeronymousClientError(e))?;
+
+        Self::save_client_state(&mut client_state, None)?;
+
+        Ok(())
+    }
+
+    /*
+     * Connect to a Veronymous VPN Server.
+     * TODO: Optional client file path
+     * TODO: Optional auth file (user name and password)
+     */
+    async fn create_connection(
+        &mut self,
+        vpn_profile: &String,
+    ) -> Result<VpnConnection, ClientError> {
+        // Read the server profile
+        let vpn_profile = Self::read_vpn_profile(vpn_profile)?;
+
+        // read the client state
+        let mut client_state = Self::read_client_state(None)?;
+
+        // Establish connection with the vpn router
+        let connection = match self
+            .veronymous_client
+            .connect(&vpn_profile, &mut client_state)
+            .await
+        {
+            Ok(connection) => {
+                Self::save_client_state(&mut client_state, None)?;
+                connection
+            }
+            Err(e) => {
+                Self::save_client_state(&mut client_state, None)?;
+
+                return Err(ClientError::VeronymousClientError(e));
+            }
+        };
+
+        Ok(connection)
+    }
+
+    fn read_vpn_profile(path: &String) -> Result<VpnProfile, ClientError> {
+        let contents = fs::read_to_string(path)
+            .map_err(|e| ReadFileError(format!("Could not read vpn profile. {:?}", e)))?;
+
+        let profile: VpnProfile = serde_json::from_str(contents.as_str())
+            .map_err(|e| ParseError(format!("Could not parse vpn profile. {:?}", e)))?;
+
+        Ok(profile)
+    }
+
+    fn read_client_state(path: Option<String>) -> Result<ClientState, ClientError> {
+        let path = match path {
+            None => get_home_path(CLIENT_FILE_PATH),
+            Some(path) => path,
+        };
+
+        let client_state;
+        if !Path::new(&path).exists() {
+            // Does not exists, create
+            client_state = ClientState::empty();
+        } else {
+            let contents = fs::read(path)
+                .map_err(|e| ReadFileError(format!("Could not read client file. {:?}", e)))?;
+
+            client_state =
+                serde_json::from_slice(&contents).map_err(|e| ParseError(format!("{:?}", e)))?;
+        }
+
+        Ok(client_state)
+    }
+
+    fn save_client_state(
+        client_state: &mut ClientState,
+        path: Option<String>,
+    ) -> Result<(), ClientError> {
+        // Clear old connections
+        client_state.clear_old(
+            VeronymousClient::get_current_key_epoch(None),
+            VeronymousClient::get_current_epoch(None),
+        );
+
+        let path = match path {
+            None => get_home_path(CLIENT_FILE_PATH),
+            Some(path) => path,
+        };
+
+        let parent = Path::new(&path).parent().unwrap();
+
+        // Create parent directory if it does not exist
+        if !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| IoError(e.to_string()))?;
+        }
+
+        let contents =
+            serde_json::to_vec(client_state).map_err(|e| EncodingError(e.to_string()))?;
+
+        fs::write(path, contents).map_err(|e| IoError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    fn get_refresh_start() -> Duration {
+        let now = Self::now();
+
+        let mut next_epoch = get_next_epoch(now, EPOCH_LENGTH);
+
+        // Check if currently in buffer
+        if EPOCH_BUFFER > (EPOCH_LENGTH - (now % EPOCH_LENGTH)) {
+            // Go to the subsequent epoch
+            next_epoch += EPOCH_LENGTH;
+        }
+        // + 15 for wiggle room
+        let refresh_start = next_epoch - EPOCH_BUFFER - now + 15;
+
+        Duration::from_secs(refresh_start)
+    }
+
+    fn now() -> u64 {
+        let now = SystemTime::now();
+        now.duration_since(UNIX_EPOCH).unwrap().as_secs()
+    }
+}

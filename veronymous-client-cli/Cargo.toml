@@ -6,3 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+thiserror = "1.0.32"
+clap = "3.2.17"
+ctrlc = { version = "3.2.3", features = ["termination"] }
+rpassword = "6.0.0"
+tokio = "1.20.1"
+serde_json = "1.0.85"
+rustc-serialize = "0.3.24"
+
+[dependencies.veronymous-client]
+path = "../veronymous-client"
+
+[dependencies.veronymous_token]
+git = "ssh://git@github.com/boumba100/veronymous.git"
+rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"

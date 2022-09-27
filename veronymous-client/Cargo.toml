@@ -19,23 +19,23 @@ regex = "1.6.0"
 
 [dependencies.veronymous_connection]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
 
 [dependencies.veronymous_router_client]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
 
 [dependencies.veronymous_token]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
 
 [dependencies.ps_signatures]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
 
 [dependencies.crypto_common]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "c2025adc94e5afd2dfee28f3f6b15cb4d2f1285a"
+rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
 
 [build-dependencies]
 tonic-build = "0.6"

@@ -34,4 +34,7 @@ pub enum VeronymousClientError {
 
     #[error("Token error. {0}")]
     TokenError(String),
+
+    #[error("Command error. {0}")]
+    CommandError(String),
 }

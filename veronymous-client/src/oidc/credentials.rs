@@ -16,7 +16,6 @@ impl OidcCredentials {
         let refresh_token = decode_jwt_payload(&self.refresh_token)?;
 
         // Get the current time
-        //let now = Self::now();
 
         // If access token is not expired
         return if access_token.exp > now {
