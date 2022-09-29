@@ -40,6 +40,7 @@ impl VeronymousClient {
         let now = Self::now();
         let current_epoch = Self::get_current_epoch(Some(now));
         let current_key_epoch = Self::get_current_key_epoch(Some(now));
+        let next_key_epoch = Self::get_next_key_epoch(current_key_epoch);
 
         // Ensure the oidc tokens
         let access_token;
@@ -48,7 +49,8 @@ impl VeronymousClient {
                 return Err(AuthRequired());
             }
             Some(credentials) => {
-                self.ensure_oidc_credentials(now, credentials).await?;
+                self.ensure_oidc_credentials(now, next_key_epoch, credentials)
+                    .await?;
                 access_token = &credentials.access_token;
             }
         };
@@ -236,9 +238,10 @@ impl VeronymousClient {
     async fn ensure_oidc_credentials(
         &self,
         now: u64,
+        next_key_epoch: u64,
         credentials: &mut OidcCredentials,
     ) -> Result<(), VeronymousClientError> {
-        match credentials.status(now)? {
+        match credentials.status(now, next_key_epoch)? {
             OidcCredentialsStatus::OK => Ok(()),
             OidcCredentialsStatus::RefreshRequired => {
                 // Refresh the tokens
@@ -298,6 +301,10 @@ impl VeronymousClient {
         };
 
         return now - (now % KEY_LIFETIME);
+    }
+
+    pub fn get_next_key_epoch(current_key_epoch: u64) -> u64 {
+        return current_key_epoch + KEY_LIFETIME;
     }
 
     fn now() -> u64 {

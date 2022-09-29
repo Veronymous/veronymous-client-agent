@@ -10,15 +10,20 @@ pub struct OidcCredentials {
 }
 
 impl OidcCredentials {
-    pub fn status(&self, now: u64) -> Result<OidcCredentialsStatus, VeronymousClientError> {
+    pub fn status(
+        &self,
+        now: u64,
+        next_key_epoch: u64,
+    ) -> Result<OidcCredentialsStatus, VeronymousClientError> {
         // Decode the access and refresh tokens
         let access_token = decode_jwt_payload(&self.access_token)?;
         let refresh_token = decode_jwt_payload(&self.refresh_token)?;
 
-        // Get the current time
-
-        // If access token is not expired
-        return if access_token.exp > now {
+        return if refresh_token.exp > next_key_epoch {
+            // If refresh token will be expired ad the next epoch
+            Ok(OidcCredentialsStatus::RefreshRequired)
+        } else if access_token.exp > now {
+            // If access token is not expired
             Ok(OidcCredentialsStatus::OK)
         } else if refresh_token.exp > now {
             // Refresh token is not expired
