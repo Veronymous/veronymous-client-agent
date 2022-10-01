@@ -39,8 +39,8 @@ impl VeronymousClient {
         // Get the current epoch
         let now = Self::now();
         let current_epoch = Self::get_current_epoch(Some(now));
+        let next_epoch = Self::get_next_epoch(now);
         let current_key_epoch = Self::get_current_key_epoch(Some(now));
-        let next_key_epoch = Self::get_next_key_epoch(current_key_epoch);
 
         // Ensure the oidc tokens
         let access_token;
@@ -49,7 +49,7 @@ impl VeronymousClient {
                 return Err(AuthRequired());
             }
             Some(credentials) => {
-                self.ensure_oidc_credentials(now, next_key_epoch, credentials)
+                self.ensure_oidc_credentials(now, next_epoch, credentials)
                     .await?;
                 access_token = &credentials.access_token;
             }
@@ -74,7 +74,7 @@ impl VeronymousClient {
             current_key_epoch,
             current_epoch,
         )
-        .await?;
+            .await?;
 
         // Ensure root token
         // TODO: Key epoch is different
@@ -85,7 +85,7 @@ impl VeronymousClient {
             current_key_epoch,
             current_epoch,
         )
-        .await?;
+            .await?;
 
         // Derive the authentication token
         let auth_token = Self::derive_auth_token(
@@ -127,7 +127,7 @@ impl VeronymousClient {
             Self::get_dns_name(&vpn_profile.agent_endpoint)?,
             &vec![vpn_profile.root_cert.clone()],
         )
-        .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
+            .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
 
         // Send a connection request
         let public_key_decoded = base64::decode(&public_key)
@@ -238,10 +238,10 @@ impl VeronymousClient {
     async fn ensure_oidc_credentials(
         &self,
         now: u64,
-        next_key_epoch: u64,
+        next_epoch: u64,
         credentials: &mut OidcCredentials,
     ) -> Result<(), VeronymousClientError> {
-        match credentials.status(now, next_key_epoch)? {
+        match credentials.status(now, next_epoch)? {
             OidcCredentialsStatus::OK => Ok(()),
             OidcCredentialsStatus::RefreshRequired => {
                 // Refresh the tokens
@@ -303,8 +303,8 @@ impl VeronymousClient {
         return now - (now % KEY_LIFETIME);
     }
 
-    pub fn get_next_key_epoch(current_key_epoch: u64) -> u64 {
-        return current_key_epoch + KEY_LIFETIME;
+    fn get_next_epoch(now: u64) -> u64 {
+        return now + EPOCH_LENGTH;
     }
 
     fn now() -> u64 {
