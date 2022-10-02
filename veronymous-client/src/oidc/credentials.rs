@@ -19,7 +19,8 @@ impl OidcCredentials {
         let access_token = decode_jwt_payload(&self.access_token)?;
         let refresh_token = decode_jwt_payload(&self.refresh_token)?;
 
-        return if refresh_token.exp >= next_epoch {
+        // If refresh token exp is larger than next epoch - 60 seconds (tolerance)
+        return if refresh_token.exp >= (next_epoch - 60) {
             // If refresh token will be expired ad the next epoch
             Ok(OidcCredentialsStatus::RefreshRequired)
         } else if access_token.exp > now {
