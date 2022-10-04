@@ -16,6 +16,7 @@ prost = "0.9"
 rand = "0.7"
 lazy_static = "1.4.0"
 regex = "1.6.0"
+log = "0.4.17"
 
 [dependencies.veronymous_connection]
 git = "ssh://git@github.com/boumba100/veronymous.git"

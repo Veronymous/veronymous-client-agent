@@ -19,19 +19,24 @@ impl OidcCredentials {
         let access_token = decode_jwt_payload(&self.access_token)?;
         let refresh_token = decode_jwt_payload(&self.refresh_token)?;
 
-        // If refresh token exp is larger than next epoch - 60 seconds (tolerance)
-        return if refresh_token.exp >= (next_epoch - 60) {
-            // If refresh token will be expired ad the next epoch
+        debug!("Getting oidc credentials status.");
+        debug!("Now: {}", now);
+        debug!("Next epoch: {}", next_epoch);
+        debug!("Access token: {:?}", access_token);
+        debug!("Refresh token: {:?}", refresh_token);
+
+        return if refresh_token.exp <= now {
+            debug!("Refresh token is expired.");
+            Ok(OidcCredentialsStatus::AuthRequired)
+        } else if refresh_token.exp <= next_epoch - 60 {
+            debug!("Refresh token will be expired at the next epoch.");
             Ok(OidcCredentialsStatus::RefreshRequired)
-        } else if access_token.exp > now {
-            // If access token is not expired
-            Ok(OidcCredentialsStatus::OK)
-        } else if refresh_token.exp > now {
-            // Refresh token is not expired
+        } else if access_token.exp <= now {
+            debug!("Access token is expired.");
             Ok(OidcCredentialsStatus::RefreshRequired)
         } else {
-            // Both access token and the refresh token are expired
-            Ok(OidcCredentialsStatus::AuthRequired)
+            debug!("Tokens are all good.");
+            Ok(OidcCredentialsStatus::OK)
         };
     }
 }

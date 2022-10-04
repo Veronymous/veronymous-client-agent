@@ -72,6 +72,7 @@ impl OidcClient {
         &self,
         credentials: &mut OidcCredentials,
     ) -> Result<(), VeronymousClientError> {
+        debug!("Refreshing OIDC credentials...");
         // Http client
         let client = reqwest::Client::new();
 
