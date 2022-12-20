@@ -1,5 +1,4 @@
 use crate::constants::app::CLIENT_FILE_PATH;
-use crate::constants::veronymous::{OIDC_CLIENT_ID, OIDC_ENDPOINT, TOKEN_ENDPOINT};
 use crate::error::ClientError;
 use crate::error::ClientError::{
     EncodingError, InitializationError, IoError, ParseError, ReadFileError,
@@ -11,7 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, thread};
 use veronymous_client::client::state::{ClientState, VpnConnection};
 use veronymous_client::client::VeronymousClient;
-use veronymous_client::constants::{EPOCH_BUFFER, EPOCH_LENGTH};
+use veronymous_client::config::VERONYMOUS_CLIENT_CONFIG;
 use veronymous_client::oidc::client::OidcClient;
 use veronymous_client::oidc::credentials::UserCredentials;
 use veronymous_client::veronymous_token::client::VeronymousTokenClient;
@@ -24,10 +23,14 @@ pub struct VpnClient {
 
 impl VpnClient {
     pub async fn create() -> Result<Self, ClientError> {
-        let oidc_client = OidcClient::new(OIDC_ENDPOINT.to_string(), OIDC_CLIENT_ID.to_string());
-        let token_client = VeronymousTokenClient::create(TOKEN_ENDPOINT.to_string())
-            .await
-            .map_err(|e| InitializationError(e.to_string()))?;
+        let oidc_client = OidcClient::new(
+            VERONYMOUS_CLIENT_CONFIG.oidc_endpoint.clone(),
+            VERONYMOUS_CLIENT_CONFIG.oidc_client_id.clone(),
+        );
+        let token_client =
+            VeronymousTokenClient::create(VERONYMOUS_CLIENT_CONFIG.token_endpoint.clone())
+                .await
+                .map_err(|e| InitializationError(e.to_string()))?;
 
         let veronymous_client = VeronymousClient::new(oidc_client, token_client);
         Ok(Self { veronymous_client })
@@ -93,6 +96,9 @@ impl VpnClient {
     ) -> Result<VpnConnection, ClientError> {
         // Read the server profile
         let vpn_profile = Self::read_vpn_profile(vpn_profile)?;
+        info!("Epoch length: {}", VERONYMOUS_CLIENT_CONFIG.epoch_length);
+        info!("Epoch buffer: {}", VERONYMOUS_CLIENT_CONFIG.epoch_buffer);
+        info!("Domain: {}", vpn_profile.domain);
 
         // read the client state
         let mut client_state = Self::read_client_state(None)?;
@@ -181,15 +187,18 @@ impl VpnClient {
     fn get_refresh_start() -> Duration {
         let now = Self::now();
 
-        let mut next_epoch = get_next_epoch(now, EPOCH_LENGTH);
+        let mut next_epoch = get_next_epoch(now, VERONYMOUS_CLIENT_CONFIG.epoch_length);
 
         // Check if currently in buffer
-        if EPOCH_BUFFER > (EPOCH_LENGTH - (now % EPOCH_LENGTH)) {
+        if VERONYMOUS_CLIENT_CONFIG.epoch_buffer
+            > (VERONYMOUS_CLIENT_CONFIG.epoch_length
+                - (now % VERONYMOUS_CLIENT_CONFIG.epoch_length))
+        {
             // Go to the subsequent epoch
-            next_epoch += EPOCH_LENGTH;
+            next_epoch += VERONYMOUS_CLIENT_CONFIG.epoch_length;
         }
         // + 15 for wiggle room
-        let refresh_start = next_epoch - EPOCH_BUFFER - now + 15;
+        let refresh_start = next_epoch - VERONYMOUS_CLIENT_CONFIG.epoch_buffer - now + 15;
 
         Duration::from_secs(refresh_start)
     }

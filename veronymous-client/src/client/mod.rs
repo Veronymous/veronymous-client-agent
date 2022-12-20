@@ -1,7 +1,7 @@
 pub mod state;
 
 use crate::client::state::{ClientState, IssuerInfo, IssuerInfos, RootTokens, VpnConnection};
-use crate::constants::{EPOCH_BUFFER, EPOCH_LENGTH, KEY_LIFETIME};
+use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
 use crate::error::VeronymousClientError::{
     AuthRequired, ConnectError, MissingIssuerInfoError, MissingTokenError, ParseError, TokenError,
@@ -74,7 +74,7 @@ impl VeronymousClient {
             current_key_epoch,
             current_epoch,
         )
-            .await?;
+        .await?;
 
         // Ensure root token
         // TODO: Key epoch is different
@@ -85,7 +85,7 @@ impl VeronymousClient {
             current_key_epoch,
             current_epoch,
         )
-            .await?;
+        .await?;
 
         // Derive the authentication token
         let auth_token = Self::derive_auth_token(
@@ -125,9 +125,9 @@ impl VeronymousClient {
         let router_client = VeronymousRouterClient::new(
             Self::get_socket_address(&vpn_profile.agent_endpoint)?,
             Self::get_dns_name(&vpn_profile.agent_endpoint)?,
-            &vec![vpn_profile.root_cert.clone()],
+            &vec![vpn_profile.root_cert.as_bytes().into()],
         )
-            .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
+        .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
 
         // Send a connection request
         let public_key_decoded = base64::decode(&public_key)
@@ -291,7 +291,11 @@ impl VeronymousClient {
             Some(now) => now,
         };
 
-        get_current_epoch(now, EPOCH_LENGTH, EPOCH_BUFFER)
+        get_current_epoch(
+            now,
+            VERONYMOUS_CLIENT_CONFIG.epoch_length,
+            VERONYMOUS_CLIENT_CONFIG.epoch_buffer,
+        )
     }
 
     pub fn get_current_key_epoch(now: Option<u64>) -> u64 {
@@ -300,11 +304,11 @@ impl VeronymousClient {
             Some(now) => now,
         };
 
-        return now - (now % KEY_LIFETIME);
+        return now - (now % VERONYMOUS_CLIENT_CONFIG.key_lifetime);
     }
 
     fn get_next_epoch(now: u64) -> u64 {
-        return now + EPOCH_LENGTH;
+        return now + VERONYMOUS_CLIENT_CONFIG.epoch_buffer;
     }
 
     fn now() -> u64 {
@@ -396,7 +400,7 @@ wIieRFPJFKt7IAQE8g3/2VF12EeS
         let vpn_profile = VpnProfile::new(
             "dev_domain".to_string(),
             "localhost.veronymous.io:7777".to_string(),
-            ROUTER_AGENT_ROOT.as_bytes().into(),
+            ROUTER_AGENT_ROOT.to_string(),
             "wg1.ny.veronymous.io:51820".to_string(),
             "/ZjSUjxcDiHHxBifHX0yVekKklDmczNv8k7M3AgmXXg=".to_string(),
         );

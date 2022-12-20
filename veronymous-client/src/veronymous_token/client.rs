@@ -7,7 +7,7 @@ use tonic::transport::Channel;
 use veronymous_token::root::RootVeronymousToken;
 use veronymous_token::root_exchange::{complete_root_token, create_root_token_request, RootTokenResponse};
 use veronymous_token::serde::Serializable as TokenSerializable;
-use crate::constants::KEY_LIFETIME;
+use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
 use crate::error::VeronymousClientError::TokenClientError;
 use crate::veronymous_token::grpc::veronymous_user_token_service::{TokenInfo, TokenInfoRequest, TokenRequest};
@@ -199,7 +199,7 @@ impl VeronymousTokenClient {
 
     // Check if the epoch belongs to the next key epoch
     fn is_next_epoch(key_epoch: u64, epoch: u64) -> bool {
-        let next_key_epoch = key_epoch + KEY_LIFETIME;
+        let next_key_epoch = key_epoch + VERONYMOUS_CLIENT_CONFIG.key_lifetime;
 
         return epoch >= next_key_epoch;
     }

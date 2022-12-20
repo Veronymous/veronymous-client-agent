@@ -20,6 +20,8 @@ impl OidcCredentials {
         let refresh_token = decode_jwt_payload(&self.refresh_token)?;
 
         debug!("Getting oidc credentials status.");
+        debug!("Access token: {}", self.access_token);
+        debug!("Refresh token: {}", self.refresh_token);
         debug!("Now: {}", now);
         debug!("Next epoch: {}", next_epoch);
         debug!("Access token: {:?}", access_token);

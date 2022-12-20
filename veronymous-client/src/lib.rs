@@ -5,7 +5,7 @@ extern crate lazy_static;
 extern crate log;
 
 pub mod client;
-pub mod constants;
+pub mod config;
 pub mod error;
 pub mod oidc;
 pub mod veronymous_token;
