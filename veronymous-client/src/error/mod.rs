@@ -35,6 +35,15 @@ pub enum VeronymousClientError {
     #[error("Token error. {0}")]
     TokenError(String),
 
+    #[error("Http error. {0}")]
+    HttpError(String),
+
     #[error("Command error. {0}")]
     CommandError(String),
+
+    #[error("Illegal argument. {0}")]
+    IllegalArgumentError(String),
+
+    #[error("Not found. {0}")]
+    NotFoundError(String)
 }

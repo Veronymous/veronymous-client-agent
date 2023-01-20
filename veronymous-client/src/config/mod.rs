@@ -18,6 +18,8 @@ pub struct VeronymousClientConfig {
     pub oidc_client_id: String,
 
     pub token_endpoint: String,
+
+    pub servers_endpoint: String,
 }
 
 #[cfg(feature = "dev-local")]
@@ -36,6 +38,7 @@ impl Default for VeronymousClientConfig {
                     .to_string(),
             oidc_client_id: "auth-client".to_string(),
             token_endpoint: "http://127.0.0.1:9123".to_string(),
+            servers_endpoint: "http://localhost:4001/servers.json".to_string(),
         }
     }
 }
@@ -52,7 +55,8 @@ impl Default for VeronymousClientConfig {
             key_lifetime: 43200,
             oidc_endpoint: "http://keycloak.192.168.2.41.veronymous.io/realms/veronymous-vpn/protocol/openid-connect/token".to_string(),
             oidc_client_id: "auth-client".to_string(),
-            token_endpoint: "http://192.168.2.41.veronymous.io:30001".to_string()
+            token_endpoint: "http://192.168.2.41.veronymous.io:30001".to_string(),
+            servers_endpoint: "http://localhost:4001/servers.json".to_string()
         }
     }
 }

@@ -1,7 +1,7 @@
-use crate::constants::app::CLIENT_FILE_PATH;
-use crate::error::ClientError;
-use crate::error::ClientError::{
-    EncodingError, InitializationError, IoError, ParseError, ReadFileError,
+use crate::constants::app::{CLIENT_FILE_PATH, VPN_SERVERS_FILE_PATH};
+use crate::error::CliClientError;
+use crate::error::CliClientError::{
+    EncodingError, InitializationError, IoError, ParseError, ReadFileError, VeronymousClientError,
 };
 use crate::utils::path_utils::get_home_path;
 use crate::wg::{wg_refresh, wg_up};
@@ -13,16 +13,16 @@ use veronymous_client::client::VeronymousClient;
 use veronymous_client::config::VERONYMOUS_CLIENT_CONFIG;
 use veronymous_client::oidc::client::OidcClient;
 use veronymous_client::oidc::credentials::UserCredentials;
+use veronymous_client::servers::VpnServers;
 use veronymous_client::veronymous_token::client::VeronymousTokenClient;
-use veronymous_client::vpn::VpnProfile;
 use veronymous_token::token::get_next_epoch;
 
-pub struct VpnClient {
+pub struct CliVpnClient {
     veronymous_client: VeronymousClient,
 }
 
-impl VpnClient {
-    pub async fn create() -> Result<Self, ClientError> {
+impl CliVpnClient {
+    pub async fn create() -> Result<Self, CliClientError> {
         let oidc_client = OidcClient::new(
             VERONYMOUS_CLIENT_CONFIG.oidc_endpoint.clone(),
             VERONYMOUS_CLIENT_CONFIG.oidc_client_id.clone(),
@@ -36,14 +36,42 @@ impl VpnClient {
         Ok(Self { veronymous_client })
     }
 
+    pub async fn authenticate(
+        &self,
+        username: String,
+        password: String,
+    ) -> Result<(), CliClientError> {
+        let credentials = UserCredentials::new(username, password);
+
+        // read the client state
+        let mut client_state = Self::read_client_state(None)?;
+
+        self.veronymous_client
+            .authenticate(&credentials, &mut client_state)
+            .await
+            .map_err(|e| CliClientError::VeronymousClientError(e))?;
+
+        Self::save_client_state(&mut client_state, None)?;
+
+        Ok(())
+    }
+
+    pub async fn get_servers(&self) -> Result<Vec<String>, CliClientError> {
+        let mut vpn_servers = Self::read_vpn_servers(None)?;
+
+        Self::update_servers(&mut vpn_servers).await?;
+
+        Ok(vpn_servers.list_domains())
+    }
+
     pub async fn connect(
         &mut self,
-        vpn_profile: String,
+        server: String,
         tunnel_only: bool,
-    ) -> Result<(), ClientError> {
+    ) -> Result<(), CliClientError> {
         info!("Connecting...");
 
-        let connection = self.create_connection(&vpn_profile).await?;
+        let connection = self.create_connection(&server).await?;
 
         wg_up(&connection, tunnel_only)?;
         info!("Connected.");
@@ -57,32 +85,12 @@ impl VpnClient {
 
             info!("Update connection...");
 
-            let connection = self.create_connection(&vpn_profile).await?;
+            let connection = self.create_connection(&server).await?;
 
             wg_refresh(&connection, tunnel_only)?;
 
             info!("Connected.");
         }
-    }
-
-    pub async fn authenticate(
-        &self,
-        username: String,
-        password: String,
-    ) -> Result<(), ClientError> {
-        let credentials = UserCredentials::new(username, password);
-
-        // read the client state
-        let mut client_state = Self::read_client_state(None)?;
-
-        self.veronymous_client
-            .authenticate(&credentials, &mut client_state)
-            .await
-            .map_err(|e| ClientError::VeronymousClientError(e))?;
-
-        Self::save_client_state(&mut client_state, None)?;
-
-        Ok(())
     }
 
     /*
@@ -92,13 +100,11 @@ impl VpnClient {
      */
     async fn create_connection(
         &mut self,
-        vpn_profile: &String,
-    ) -> Result<VpnConnection, ClientError> {
-        // Read the server profile
-        let vpn_profile = Self::read_vpn_profile(vpn_profile)?;
-        info!("Epoch length: {}", VERONYMOUS_CLIENT_CONFIG.epoch_length);
-        info!("Epoch buffer: {}", VERONYMOUS_CLIENT_CONFIG.epoch_buffer);
-        info!("Domain: {}", vpn_profile.domain);
+        domain: &String,
+    ) -> Result<VpnConnection, CliClientError> {
+        // Read and update the vpn servers
+        let mut vpn_servers = Self::read_vpn_servers(None)?;
+        Self::update_servers(&mut vpn_servers).await?;
 
         // read the client state
         let mut client_state = Self::read_client_state(None)?;
@@ -106,7 +112,7 @@ impl VpnClient {
         // Establish connection with the vpn router
         let connection = match self
             .veronymous_client
-            .connect(&vpn_profile, &mut client_state)
+            .connect(domain, &mut client_state, &vpn_servers)
             .await
         {
             Ok(connection) => {
@@ -116,24 +122,27 @@ impl VpnClient {
             Err(e) => {
                 Self::save_client_state(&mut client_state, None)?;
 
-                return Err(ClientError::VeronymousClientError(e));
+                return Err(VeronymousClientError(e));
             }
         };
 
         Ok(connection)
     }
 
-    fn read_vpn_profile(path: &String) -> Result<VpnProfile, ClientError> {
-        let contents = fs::read_to_string(path)
-            .map_err(|e| ReadFileError(format!("Could not read vpn profile. {:?}", e)))?;
+    async fn update_servers(vpn_servers: &mut VpnServers) -> Result<(), CliClientError> {
+        let updated = vpn_servers
+            .update()
+            .await
+            .map_err(|e| VeronymousClientError(e))?;
 
-        let profile: VpnProfile = serde_json::from_str(contents.as_str())
-            .map_err(|e| ParseError(format!("Could not parse vpn profile. {:?}", e)))?;
+        if updated {
+            Self::save_vpn_servers(vpn_servers, None)?;
+        }
 
-        Ok(profile)
+        Ok(())
     }
 
-    fn read_client_state(path: Option<String>) -> Result<ClientState, ClientError> {
+    fn read_client_state(path: Option<String>) -> Result<ClientState, CliClientError> {
         let path = match path {
             None => get_home_path(CLIENT_FILE_PATH),
             Some(path) => path,
@@ -157,7 +166,7 @@ impl VpnClient {
     fn save_client_state(
         client_state: &mut ClientState,
         path: Option<String>,
-    ) -> Result<(), ClientError> {
+    ) -> Result<(), CliClientError> {
         // Clear old connections
         client_state.clear_old(
             VeronymousClient::get_current_key_epoch(None),
@@ -166,6 +175,51 @@ impl VpnClient {
 
         let path = match path {
             None => get_home_path(CLIENT_FILE_PATH),
+            Some(path) => path,
+        };
+
+        let parent = Path::new(&path).parent().unwrap();
+
+        // Create parent directory if it does not exist
+        if !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| IoError(e.to_string()))?;
+        }
+
+        let contents =
+            serde_json::to_vec(client_state).map_err(|e| EncodingError(e.to_string()))?;
+
+        fs::write(path, contents).map_err(|e| IoError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    fn read_vpn_servers(path: Option<String>) -> Result<VpnServers, CliClientError> {
+        let path = match path {
+            None => get_home_path(VPN_SERVERS_FILE_PATH),
+            Some(path) => path,
+        };
+
+        let vpn_servers;
+        if !Path::new(&path).exists() {
+            // Does not exists, create
+            vpn_servers = VpnServers::new();
+        } else {
+            let contents = fs::read(path)
+                .map_err(|e| ReadFileError(format!("Could not read vpn servers file. {:?}", e)))?;
+
+            vpn_servers =
+                serde_json::from_slice(&contents).map_err(|e| ParseError(format!("{:?}", e)))?;
+        }
+
+        Ok(vpn_servers)
+    }
+
+    fn save_vpn_servers(
+        client_state: &mut VpnServers,
+        path: Option<String>,
+    ) -> Result<(), CliClientError> {
+        let path = match path {
+            None => get_home_path(VPN_SERVERS_FILE_PATH),
             Some(path) => path,
         };
 

@@ -1,5 +1,5 @@
-use crate::error::ClientError;
-use crate::error::ClientError::{CommandError, IoError};
+use crate::error::CliClientError;
+use crate::error::CliClientError::{CommandError, IoError};
 use rustc_serialize::hex::ToHex;
 use std::env::temp_dir;
 use std::fs;
@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use veronymous_client::client::state::VpnConnection;
 
-pub fn wg_down() -> Result<(), ClientError> {
+pub fn wg_down() -> Result<(), CliClientError> {
     // Delete the interface. Ignore error (thrown if the interface does not exists)
     delete_wg_interface().ok();
 
@@ -16,7 +16,7 @@ pub fn wg_down() -> Result<(), ClientError> {
     Ok(())
 }
 
-pub fn wg_up(connection: &VpnConnection, tunnel_only: bool) -> Result<(), ClientError> {
+pub fn wg_up(connection: &VpnConnection, tunnel_only: bool) -> Result<(), CliClientError> {
     // Tear down existing connection
     wg_down()?;
 
@@ -45,7 +45,7 @@ pub fn wg_up(connection: &VpnConnection, tunnel_only: bool) -> Result<(), Client
     Ok(())
 }
 
-pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), ClientError> {
+pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), CliClientError> {
     // Flush wireguard addresses
     flush_wg_addresses()?;
 
@@ -73,13 +73,13 @@ pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), C
 /*
 * Create wireguard network interface
 */
-fn create_wg_interface() -> Result<(), ClientError> {
+fn create_wg_interface() -> Result<(), CliClientError> {
     run_command(&format!("ip link add dev veron0 type wireguard"))?;
 
     Ok(())
 }
 
-fn delete_wg_interface() -> Result<(), ClientError> {
+fn delete_wg_interface() -> Result<(), CliClientError> {
     run_command(&format!("ip link delete dev veron0 type wireguard"))?;
 
     Ok(())
@@ -88,7 +88,7 @@ fn delete_wg_interface() -> Result<(), ClientError> {
 /*
 * Assign the client wireguard addresses
 */
-fn assign_wg_addresses(ip4_address: &String, ip6_address: &String) -> Result<(), ClientError> {
+fn assign_wg_addresses(ip4_address: &String, ip6_address: &String) -> Result<(), CliClientError> {
     // Set the ipv4 address
     run_command(&format!("ip address add {} dev veron0", ip4_address))?;
 
@@ -98,7 +98,7 @@ fn assign_wg_addresses(ip4_address: &String, ip6_address: &String) -> Result<(),
     Ok(())
 }
 
-fn flush_wg_addresses() -> Result<(), ClientError> {
+fn flush_wg_addresses() -> Result<(), CliClientError> {
     run_command(&format!("ip addr flush dev veron0"))?;
 
     Ok(())
@@ -113,7 +113,7 @@ fn configure_wg(
     public_key: &String,
     peer: &String,
     endpoint: &String,
-) -> Result<(), ClientError> {
+) -> Result<(), CliClientError> {
     // wg set wg0 private-key privatekey.txt peer /ZjSUjxcDiHHxBifHX0yVekKklDmczNv8k7M3AgmXXg= allowed-ips 0.0.0.0/0,::/0 endpoint wg1.ny.veronymous.io:51820
 
     // Create temp dir
@@ -143,7 +143,7 @@ fn configure_wg(
 /*
 * Start the wireguard interface
 */
-fn start_wg_interface() -> Result<(), ClientError> {
+fn start_wg_interface() -> Result<(), CliClientError> {
     run_command(&format!("ip link set mtu 1420 up dev veron0"))?;
 
     Ok(())
@@ -151,7 +151,7 @@ fn start_wg_interface() -> Result<(), ClientError> {
 
 // Configure routing of all traffic through the wireguard interface
 // TODO: Select different table number?
-fn configure_routing() -> Result<(), ClientError> {
+fn configure_routing() -> Result<(), CliClientError> {
     run_command(&format!("wg set veron0 fwmark 51820"))?;
     run_command(&format!("ip route add default dev veron0 table 51820"))?;
     run_command(&format!("ip rule add not fwmark 51820 table 51820"))?;
@@ -160,7 +160,7 @@ fn configure_routing() -> Result<(), ClientError> {
     Ok(())
 }
 
-fn run_command(command: &String) -> Result<String, ClientError> {
+fn run_command(command: &String) -> Result<String, CliClientError> {
     debug!("{}", command);
     let out = Command::new("sh")
         .arg("-c")
@@ -183,7 +183,7 @@ fn save_private_temp(
     temp: &PathBuf,
     private_key: &String,
     public_key: &String,
-) -> Result<PathBuf, ClientError> {
+) -> Result<PathBuf, CliClientError> {
     // Create temporary directory
     let mut private_key_file = temp.clone();
     private_key_file.push(format!("{}.priv", public_key.as_bytes()[0..10].to_hex()));
@@ -193,7 +193,7 @@ fn save_private_temp(
     Ok(private_key_file)
 }
 
-fn create_temp_dir(name: &String) -> Result<PathBuf, ClientError> {
+fn create_temp_dir(name: &String) -> Result<PathBuf, CliClientError> {
     // Create temporary directory
     let mut temp = temp_dir();
     temp.push(name);

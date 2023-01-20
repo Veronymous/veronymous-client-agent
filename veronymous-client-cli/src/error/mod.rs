@@ -2,7 +2,7 @@ use thiserror::Error;
 use veronymous_client::error::VeronymousClientError;
 
 #[derive(Clone, Debug, Error)]
-pub enum ClientError {
+pub enum CliClientError {
     #[error("{0}")]
     ParseError(String),
 

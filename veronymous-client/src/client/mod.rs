@@ -8,6 +8,7 @@ use crate::error::VeronymousClientError::{
 };
 use crate::oidc::client::OidcClient;
 use crate::oidc::credentials::{OidcCredentials, OidcCredentialsStatus, UserCredentials};
+use crate::servers::VpnServers;
 use crate::veronymous_token::client::VeronymousTokenClient;
 use crate::vpn::VpnProfile;
 use crate::wg::generate_keypair;
@@ -31,10 +32,23 @@ impl VeronymousClient {
         }
     }
 
+    pub async fn authenticate(
+        &self,
+        credentials: &UserCredentials,
+        client_state: &mut ClientState,
+    ) -> Result<(), VeronymousClientError> {
+        let oidc_credentials = self.oidc_client.fetch_tokens(credentials).await?;
+
+        client_state.oidc_credentials = Some(oidc_credentials);
+
+        Ok(())
+    }
+
     pub async fn connect(
         &mut self,
-        vpn_profile: &VpnProfile,
+        domain: &String,
         client_state: &mut ClientState,
+        servers: &VpnServers,
     ) -> Result<VpnConnection, VeronymousClientError> {
         // Get the current epoch
         let now = Self::now();
@@ -58,14 +72,17 @@ impl VeronymousClient {
         // Make sure that the domain is not used
         if client_state
             .connections
-            .has_connection(&current_epoch, &vpn_profile.domain)
+            .has_connection(&current_epoch, domain)
         {
             return Ok(client_state
                 .connections
-                .get_connection(&current_epoch, &vpn_profile.domain)
+                .get_connection(&current_epoch, domain)
                 .unwrap()
                 .clone());
         }
+
+        // TODO: Get the vpn profile
+        let vpn_profile = servers.find_server(domain)?;
 
         // Ensure that the client state contains the issuer's token info
         self.ensure_issuer_info(
@@ -77,7 +94,6 @@ impl VeronymousClient {
         .await?;
 
         // Ensure root token
-        // TODO: Key epoch is different
         self.ensure_root_token(
             &mut client_state.root_tokens,
             &mut client_state.issuer_infos,
@@ -114,7 +130,7 @@ impl VeronymousClient {
         Ok(vpn_connection)
     }
 
-    pub async fn create_connection(
+    async fn create_connection(
         &mut self,
         private_key: String,
         public_key: String,
@@ -157,18 +173,6 @@ impl VeronymousClient {
         );
 
         Ok(vpn_connection)
-    }
-
-    pub async fn authenticate(
-        &self,
-        credentials: &UserCredentials,
-        client_state: &mut ClientState,
-    ) -> Result<(), VeronymousClientError> {
-        let oidc_credentials = self.oidc_client.fetch_tokens(credentials).await?;
-
-        client_state.oidc_credentials = Some(oidc_credentials);
-
-        Ok(())
     }
 
     /*
@@ -342,104 +346,5 @@ impl VeronymousClient {
         }
 
         Ok(parts[0])
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::client::state::ClientState;
-    use crate::client::VeronymousClient;
-    use crate::error::VeronymousClientError::AuthRequired;
-    use crate::oidc::client::OidcClient;
-    use crate::oidc::credentials::UserCredentials;
-    use crate::veronymous_token::client::VeronymousTokenClient;
-    use crate::vpn::VpnProfile;
-
-    const ROUTER_AGENT_ROOT: &str = "-----BEGIN CERTIFICATE-----
-MIID0TCCArmgAwIBAgIUCVuNppf++HHklyxMgrGWTPNTKMgwDQYJKoZIhvcNAQEL
-BQAweDELMAkGA1UEBhMCQ0ExEDAOBgNVBAgMB09udGFyaW8xDzANBgNVBAcMBk90
-dGF3YTEkMCIGA1UECgwbVmVyb255bW91cyBUZWNobm9sb2dpZXMgSW5jMSAwHgYD
-VQQDDBdWZXJvbnltb3VzIFRlY2hub2xvZ2llczAeFw0yMjA4MTExMzIwNTJaFw0y
-NzA4MTAxMzIwNTJaMHgxCzAJBgNVBAYTAkNBMRAwDgYDVQQIDAdPbnRhcmlvMQ8w
-DQYDVQQHDAZPdHRhd2ExJDAiBgNVBAoMG1Zlcm9ueW1vdXMgVGVjaG5vbG9naWVz
-IEluYzEgMB4GA1UEAwwXVmVyb255bW91cyBUZWNobm9sb2dpZXMwggEiMA0GCSqG
-SIb3DQEBAQUAA4IBDwAwggEKAoIBAQCw1TQI538AkY5IEC2FTzhb4/ZtErWAAKAZ
-U744847DN0xHzeXMSBFm4RmVi5j8bOAMhnV11tqh5XfbhHGmEBO9i85XJoXUuGes
-MUIIMna3eHS889SeIp0xo0TBtVHUwuvAofE4vts6/ZI6Ip5sHSEXl41n93VkwUPO
-1E+0TBZVy+3pvguzbQa/tjgXDyYwv03Sy1JQQXUEHOVghpRdc+tL+GzzhXLoVmAr
-07vBj5cnICCN7g/WkJbhoi7WxGUxkjNX3ibkmQjxTTSsNnbQ3fvAY8lKmkt6uPzz
-Yt/Xyx/Is0f58FxFoiGYyTvqi4ShXb614VhUg43kCMwmKPd86YWTAgMBAAGjUzBR
-MB0GA1UdDgQWBBTMGM+KXB5CpEeAZwSakqvvb9P8pDAfBgNVHSMEGDAWgBTMGM+K
-XB5CpEeAZwSakqvvb9P8pDAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUA
-A4IBAQBmJWu/5nCGZbxkVBTxhdhyXiXn5xJbssYOdgfCnIl8fnMgDJjSjBlmGrc4
-JpJ6EKjsvGdeVdOQ86Up8SQR7gHrW2MeWcTejNDwsmBGKdQDh/U1mozwoFnMX7oH
-gz6Gqz8T5XSGTfbxNwQPBDp3fDNaISgEM7DeZhxBR10oSkwa0c6WA1HkyBUTbNn9
-2xdjDAr1Uj70P05qwyWlSHdBXYBaWOEYe0jkCKxR5xwF4+lYtmyYmpQqVxCojk8p
-WWkQ8PIncGsunqvO9NW+ShTkrYR3NNa4yDTVcqy9Us1bycnCfpTnYIRt4BWH1IIj
-wIieRFPJFKt7IAQE8g3/2VF12EeS
------END CERTIFICATE-----";
-
-    #[tokio::test]
-    async fn connect() {
-        // OIDC client
-        let oidc_token_endpoint: &str =
-            "http://172.20.0.3:8080/realms/veronymous-vpn/protocol/openid-connect/token";
-        let oidc_client_id: &str = "auth-client";
-
-        let oidc_client =
-            OidcClient::new(oidc_token_endpoint.to_string(), oidc_client_id.to_string());
-
-        let token_endpoint = "http://127.0.0.1:9123";
-        let token_client = VeronymousTokenClient::create(token_endpoint.to_string())
-            .await
-            .unwrap();
-
-        // Client state
-        let mut client_state = ClientState::empty();
-
-        let vpn_profile = VpnProfile::new(
-            "dev_domain".to_string(),
-            "localhost.veronymous.io:7777".to_string(),
-            ROUTER_AGENT_ROOT.to_string(),
-            "wg1.ny.veronymous.io:51820".to_string(),
-            "/ZjSUjxcDiHHxBifHX0yVekKklDmczNv8k7M3AgmXXg=".to_string(),
-        );
-
-        // Veronymous client
-        let mut client = VeronymousClient::new(oidc_client, token_client);
-
-        // Connect without credentials
-        let connection_result = client.connect(&vpn_profile, &mut client_state).await;
-
-        assert!(connection_result.is_err());
-        assert_eq!(connection_result.err(), Some(AuthRequired()));
-
-        // Authenticate
-        let user_credentials = UserCredentials::new("user1".to_string(), "password".to_string());
-        client
-            .authenticate(&user_credentials, &mut client_state)
-            .await
-            .unwrap();
-
-        // OIDC credentials must be set
-        assert!(client_state.oidc_credentials.is_some());
-
-        // Connect
-        let connection = client
-            .connect(&vpn_profile, &mut client_state)
-            .await
-            .unwrap();
-
-        println!("{:?}", connection);
-
-        let client_state_json = serde_json::to_string(&client_state).unwrap();
-
-        println!("{}", client_state_json);
-
-        let client_state_parsed: ClientState =
-            serde_json::from_str(client_state_json.as_str()).unwrap();
-
-        println!("Client: {:?}", client_state);
-        println!("Client state parsed: {:?}", client_state_parsed);
     }
 }
