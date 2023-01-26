@@ -56,7 +56,7 @@ impl Default for VeronymousClientConfig {
             oidc_endpoint: "http://keycloak.192.168.2.41.veronymous.io/realms/veronymous-vpn/protocol/openid-connect/token".to_string(),
             oidc_client_id: "auth-client".to_string(),
             token_endpoint: "http://192.168.2.41.veronymous.io:30001".to_string(),
-            servers_endpoint: "http://localhost:4001/servers.json".to_string()
+            servers_endpoint: "http://servers.192.168.2.41.veronymous.io/servers.json".to_string()
         }
     }
 }
