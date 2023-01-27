@@ -38,7 +38,7 @@ impl Default for VeronymousClientConfig {
                     .to_string(),
             oidc_client_id: "auth-client".to_string(),
             token_endpoint: "http://127.0.0.1:9123".to_string(),
-            servers_endpoint: "http://localhost:4001/servers.json".to_string(),
+            servers_endpoint: "http://localhost:9090/servers.json".to_string(),
         }
     }
 }
