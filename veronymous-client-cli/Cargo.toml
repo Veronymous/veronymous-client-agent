@@ -13,6 +13,7 @@ dev-env = ["veronymous-client/dev-env"]
 [dependencies]
 thiserror = "1.0.32"
 log = "0.4.17"
+rand = "0.7"
 env_logger = "0.9.1"
 clap = "3.2.17"
 ctrlc = { version = "3.2.3", features = ["termination"] }

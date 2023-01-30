@@ -8,6 +8,7 @@ use crate::wg::{wg_refresh, wg_up};
 use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, thread};
+use rand::Rng;
 use veronymous_client::client::state::{ClientState, VpnConnection};
 use veronymous_client::client::VeronymousClient;
 use veronymous_client::config::VERONYMOUS_CLIENT_CONFIG;
@@ -261,8 +262,15 @@ impl CliVpnClient {
             // Go to the subsequent epoch
             next_epoch += VERONYMOUS_CLIENT_CONFIG.epoch_length;
         }
-        // + 15 for wiggle room
-        let refresh_start = next_epoch - VERONYMOUS_CLIENT_CONFIG.epoch_buffer - now + 15;
+
+        // 10 second for time sync tolerance.
+        let buffer_start = next_epoch - VERONYMOUS_CLIENT_CONFIG.epoch_buffer - now + 10;
+        let buffer_end = next_epoch - now - 10;
+
+        let mut rng = rand::thread_rng();
+
+        // Find a random time in the buffer
+        let refresh_start = rng.gen_range(buffer_start, buffer_end);
 
         Duration::from_secs(refresh_start)
     }
