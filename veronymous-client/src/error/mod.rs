@@ -45,5 +45,5 @@ pub enum VeronymousClientError {
     IllegalArgumentError(String),
 
     #[error("Not found. {0}")]
-    NotFoundError(String)
+    NotFoundError(String),
 }

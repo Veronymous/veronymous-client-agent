@@ -38,14 +38,14 @@ impl VeronymousTokenClient {
         issuer_key_params: &PsParams,
         issuer_key: &PsPublicKey,
         access_token: &String,
-        key_epoch: u64,
-        epoch: u64,
+        current_key_epoch: u64,
+        active_key_epoch: u64,
     ) -> Result<RootVeronymousToken, VeronymousClientError> {
         // Generate the token id and blinding
         let token_id = rand_non_zero_fr(&mut thread_rng());
         let blinding = rand_non_zero_fr(&mut thread_rng());
 
-        let is_next_epoch = Self::is_next_epoch(key_epoch, epoch);
+        let is_next_epoch = Self::is_next_key_epoch(current_key_epoch, active_key_epoch);
 
         let access_token = Self::assemble_access_token(access_token)?;
 
@@ -82,11 +82,11 @@ impl VeronymousTokenClient {
 
     pub async fn get_token_info(
         &mut self,
-        epoch: u64,
-        key_epoch: u64,
+        active_key_epoch: u64,
+        current_key_epoch: u64,
         access_token: &String,
     ) -> Result<(PsPublicKey, PsParams), VeronymousClientError> {
-        let is_next_epoch = Self::is_next_epoch(key_epoch, epoch);
+        let is_next_epoch = Self::is_next_key_epoch(current_key_epoch, active_key_epoch);
 
         let access_token = Self::assemble_access_token(access_token)?;
 
@@ -198,9 +198,9 @@ impl VeronymousTokenClient {
     }
 
     // Check if the epoch belongs to the next key epoch
-    fn is_next_epoch(key_epoch: u64, epoch: u64) -> bool {
-        let next_key_epoch = key_epoch + VERONYMOUS_CLIENT_CONFIG.key_lifetime;
+    fn is_next_key_epoch(current_key_epoch: u64, active_key_epoch: u64) -> bool {
+        let next_key_epoch = current_key_epoch + VERONYMOUS_CLIENT_CONFIG.key_lifetime;
 
-        return epoch >= next_key_epoch;
+        return active_key_epoch >= next_key_epoch;
     }
 }

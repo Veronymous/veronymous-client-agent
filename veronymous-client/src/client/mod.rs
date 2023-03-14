@@ -13,7 +13,6 @@ use crate::veronymous_token::client::VeronymousTokenClient;
 use crate::vpn::VpnProfile;
 use crate::wg::generate_keypair;
 use rand::thread_rng;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs};
 use std::time::{SystemTime, UNIX_EPOCH};
 use veronymous_router_client::VeronymousRouterClient;
 use veronymous_token::token::{get_current_epoch, VeronymousToken};
@@ -53,8 +52,13 @@ impl VeronymousClient {
         // Get the current epoch
         let now = Self::now();
         let current_epoch = Self::get_current_epoch(Some(now));
-        let next_epoch = Self::get_next_epoch(now);
+        let next_epoch = Self::get_next_epoch(current_epoch);
+        // let next_epoch = Self::get_next_epoch(now);
         let current_key_epoch = Self::get_current_key_epoch(Some(now));
+        let active_key_epoch = Self::get_active_key_epoch(Some(now), Some(current_key_epoch));
+
+        debug!("current key epoch: {}", current_key_epoch);
+        debug!("Active key epoch: {}", active_key_epoch);
 
         // Ensure the oidc tokens
         let access_token;
@@ -89,7 +93,7 @@ impl VeronymousClient {
             &mut client_state.issuer_infos,
             access_token,
             current_key_epoch,
-            current_epoch,
+            active_key_epoch,
         )
         .await?;
 
@@ -99,13 +103,13 @@ impl VeronymousClient {
             &mut client_state.issuer_infos,
             access_token,
             current_key_epoch,
-            current_epoch,
+            active_key_epoch,
         )
         .await?;
 
         // Derive the authentication token
         let auth_token = Self::derive_auth_token(
-            current_key_epoch,
+            active_key_epoch,
             current_epoch,
             &vpn_profile.domain,
             &mut client_state.root_tokens,
@@ -138,11 +142,11 @@ impl VeronymousClient {
         auth_token: VeronymousToken,
     ) -> Result<VpnConnection, VeronymousClientError> {
         // Create the client
-        let router_client = VeronymousRouterClient::new(
-            Self::get_socket_address(&vpn_profile.agent_endpoint)?,
-            Self::get_dns_name(&vpn_profile.agent_endpoint)?,
-            &vec![vpn_profile.root_cert.as_bytes().into()],
+        let mut router_client = VeronymousRouterClient::new(
+            &vpn_profile.agent_endpoint,
+            vpn_profile.root_cert.as_bytes(),
         )
+        .await
         .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
 
         // Send a connection request
@@ -151,19 +155,15 @@ impl VeronymousClient {
             .try_into()
             .map_err(|e| ParseError(format!("Could not decode public key. {:?}", e)))?;
 
-        let connection_response = router_client
+        let connection = router_client
             .connect(public_key_decoded, auth_token)
             .await
             .map_err(|e| ConnectError(format!("Could not create connection. {:?}", e)))?;
 
-        if !connection_response.accepted {
-            return Err(ConnectError(format!("Connection request denied.")));
-        }
-
         let vpn_connection = VpnConnection::new(
             vec![
-                Ipv4Addr::from(connection_response.ipv4_address).to_string(),
-                Ipv6Addr::from(connection_response.ipv6_address).to_string(),
+                connection.ipv4_address.to_string(),
+                connection.ipv6_address.to_string(),
             ],
             vpn_profile.wg_key.clone(),
             vpn_profile.wg_endpoint.clone(),
@@ -182,17 +182,19 @@ impl VeronymousClient {
         &mut self,
         token_infos: &mut IssuerInfos,
         access_token: &String,
-        key_epoch: u64,
-        epoch: u64,
+        current_key_epoch: u64,
+        active_key_epoch: u64,
     ) -> Result<(), VeronymousClientError> {
-        if !token_infos.issuer_infos.contains_key(&key_epoch) {
+        if !token_infos.issuer_infos.contains_key(&active_key_epoch) {
             let issuer_info = self
                 .token_client
-                .get_token_info(key_epoch, epoch, access_token)
+                .get_token_info(active_key_epoch, current_key_epoch, access_token)
                 .await?;
             let issuer_info = IssuerInfo::new(issuer_info.0, issuer_info.1);
 
-            token_infos.issuer_infos.insert(key_epoch, issuer_info);
+            token_infos
+                .issuer_infos
+                .insert(active_key_epoch, issuer_info);
         }
 
         Ok(())
@@ -206,14 +208,14 @@ impl VeronymousClient {
         root_tokens: &mut RootTokens,
         issuer_infos: &mut IssuerInfos,
         access_token: &String,
-        key_epoch: u64,
-        epoch: u64,
+        current_key_epoch: u64,
+        active_key_epoch: u64,
     ) -> Result<(), VeronymousClientError> {
         // Check if a root token exists
-        if !root_tokens.tokens.contains_key(&key_epoch) {
+        if !root_tokens.tokens.contains_key(&active_key_epoch) {
             // Does not contain a root token for the epoch
 
-            let issuer_info = match issuer_infos.issuer_infos.get(&key_epoch) {
+            let issuer_info = match issuer_infos.issuer_infos.get(&active_key_epoch) {
                 None => return Err(MissingIssuerInfoError()),
                 Some(issuer_info) => issuer_info,
             };
@@ -225,12 +227,12 @@ impl VeronymousClient {
                     &issuer_info.params,
                     &issuer_info.public_key,
                     access_token,
-                    key_epoch,
-                    epoch,
+                    current_key_epoch,
+                    active_key_epoch,
                 )
                 .await?;
 
-            root_tokens.tokens.insert(key_epoch, root_token);
+            root_tokens.tokens.insert(active_key_epoch, root_token);
         }
 
         Ok(())
@@ -260,18 +262,23 @@ impl VeronymousClient {
     }
 
     fn derive_auth_token(
-        key_epoch: u64,
+        active_key_epoch: u64,
         epoch: u64,
         domain: &String,
         root_tokens: &RootTokens,
         issuer_infos: &IssuerInfos,
     ) -> Result<VeronymousToken, VeronymousClientError> {
-        let root_token = match root_tokens.tokens.get(&key_epoch) {
-            None => return Err(MissingTokenError("Missing root token".to_string())),
+        let root_token = match root_tokens.tokens.get(&active_key_epoch) {
+            None => {
+                return Err(MissingTokenError(format!(
+                    "Missing root token for key epoch: {}",
+                    active_key_epoch
+                )))
+            }
             Some(root_token) => root_token,
         };
 
-        let token_info = match issuer_infos.issuer_infos.get(&key_epoch) {
+        let token_info = match issuer_infos.issuer_infos.get(&active_key_epoch) {
             None => return Err(MissingIssuerInfoError()),
             Some(token_info) => token_info,
         };
@@ -308,43 +315,40 @@ impl VeronymousClient {
             Some(now) => now,
         };
 
-        return now - (now % VERONYMOUS_CLIENT_CONFIG.key_lifetime);
+        let current_epoch = now - (now % VERONYMOUS_CLIENT_CONFIG.key_lifetime);
+
+        current_epoch
     }
 
-    fn get_next_epoch(now: u64) -> u64 {
-        return now + VERONYMOUS_CLIENT_CONFIG.epoch_buffer;
+    pub fn get_active_key_epoch(now: Option<u64>, current_key_epoch: Option<u64>) -> u64 {
+        let now = match now {
+            None => Self::now(),
+            Some(now) => now,
+        };
+
+        let current_key_epoch = match current_key_epoch {
+            None => Self::get_current_key_epoch(Some(now)),
+            Some(current_key_epoch) => current_key_epoch,
+        };
+
+        // Return next if in buffer
+        return if VERONYMOUS_CLIENT_CONFIG.epoch_buffer
+            > VERONYMOUS_CLIENT_CONFIG.key_lifetime - (now % VERONYMOUS_CLIENT_CONFIG.key_lifetime)
+        {
+            debug!("In buffer, returning next key epoch.");
+            current_key_epoch + VERONYMOUS_CLIENT_CONFIG.key_lifetime
+        } else {
+            current_key_epoch
+        };
+    }
+
+    fn get_next_epoch(current_epoch: u64) -> u64 {
+        return current_epoch + VERONYMOUS_CLIENT_CONFIG.epoch_length;
+        // return now + VERONYMOUS_CLIENT_CONFIG.epoch_buffer;
     }
 
     fn now() -> u64 {
         let now = SystemTime::now();
         now.duration_since(UNIX_EPOCH).unwrap().as_secs()
-    }
-
-    // Resolve socket address
-    fn get_socket_address(endpoint: &String) -> Result<SocketAddr, VeronymousClientError> {
-        let addresses = endpoint
-            .to_socket_addrs()
-            .map_err(|e| ConnectError(format!("Could not resolve address {:?}", e)))?;
-
-        let mut iter = addresses.into_iter();
-
-        let address = match iter.next() {
-            None => return Err(ConnectError(format!("Could not resolve address"))),
-            Some(address) => address,
-        };
-
-        Ok(address)
-    }
-
-    fn get_dns_name(endpoint: &String) -> Result<&str, VeronymousClientError> {
-        let parts: Vec<&str> = endpoint.split(":").collect();
-
-        if parts.len() != 2 {
-            return Err(ParseError(format!(
-                "Could not get dns name from endpoint address"
-            )));
-        }
-
-        Ok(parts[0])
     }
 }

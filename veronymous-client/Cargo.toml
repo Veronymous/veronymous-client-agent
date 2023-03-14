@@ -17,35 +17,31 @@ reqwest = { version = "0.11.13", features = ["blocking", "multipart", "json"] }
 serde = { version = "1.0.133", features = ["derive"] }
 base64 = "0.13.0"
 serde_json = "1.0.83"
-tonic = "0.6"
-prost = "0.9"
+tonic = "0.8.3"
+prost = "0.11.8"
 rand = "0.7"
 lazy_static = "1.4.0"
 regex = "1.6.0"
 log = "0.4.17"
 
-[dependencies.veronymous_connection]
-git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
-
 [dependencies.veronymous_router_client]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
+rev = "880519bacd02736de19036295c4c43eb35007cd1"
 
 [dependencies.veronymous_token]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
+rev = "880519bacd02736de19036295c4c43eb35007cd1"
 
 [dependencies.ps_signatures]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
+rev = "880519bacd02736de19036295c4c43eb35007cd1"
 
 [dependencies.crypto_common]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
+rev = "880519bacd02736de19036295c4c43eb35007cd1"
 
 [build-dependencies]
-tonic-build = "0.6"
+tonic-build = "0.8.4"
 
 [dev-dependencies]
 tokio = { version = "1.20.1", features = ["rt", "macros"] }

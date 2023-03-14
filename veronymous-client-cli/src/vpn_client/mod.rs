@@ -1,23 +1,23 @@
 use crate::constants::app::{CLIENT_FILE_PATH, VPN_SERVERS_FILE_PATH};
 use crate::error::CliClientError;
 use crate::error::CliClientError::{
-    EncodingError, InitializationError, IoError, ParseError, ReadFileError
+    EncodingError, InitializationError, IoError, ParseError, ReadFileError,
 };
 use crate::utils::path_utils::get_home_path;
 use crate::wg::{wg_refresh, wg_up};
+use rand::Rng;
 use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, thread};
-use rand::Rng;
 use veronymous_client::client::state::{ClientState, VpnConnection};
 use veronymous_client::client::VeronymousClient;
 use veronymous_client::config::VERONYMOUS_CLIENT_CONFIG;
+use veronymous_client::error::VeronymousClientError;
 use veronymous_client::oidc::client::OidcClient;
 use veronymous_client::oidc::credentials::UserCredentials;
 use veronymous_client::servers::VpnServers;
 use veronymous_client::veronymous_token::client::VeronymousTokenClient;
 use veronymous_token::token::get_next_epoch;
-use veronymous_client::error::VeronymousClientError;
 
 pub struct CliVpnClient {
     veronymous_client: VeronymousClient,
@@ -127,7 +127,7 @@ impl CliVpnClient {
                         // Remove oidc credentials
                         // This is to prevent saving inadequate credentials
                         client_state.oidc_credentials = None;
-                    },
+                    }
                     _ => {}
                 };
 
@@ -180,7 +180,7 @@ impl CliVpnClient {
     ) -> Result<(), CliClientError> {
         // Clear old connections
         client_state.clear_old(
-            VeronymousClient::get_current_key_epoch(None),
+            VeronymousClient::get_active_key_epoch(None, None),
             VeronymousClient::get_current_epoch(None),
         );
 
@@ -257,7 +257,7 @@ impl CliVpnClient {
         // Check if currently in buffer
         if VERONYMOUS_CLIENT_CONFIG.epoch_buffer
             > (VERONYMOUS_CLIENT_CONFIG.epoch_length
-            - (now % VERONYMOUS_CLIENT_CONFIG.epoch_length))
+                - (now % VERONYMOUS_CLIENT_CONFIG.epoch_length))
         {
             // Go to the subsequent epoch
             next_epoch += VERONYMOUS_CLIENT_CONFIG.epoch_length;

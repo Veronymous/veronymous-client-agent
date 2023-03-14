@@ -28,4 +28,4 @@ optional = true
 
 [dependencies.veronymous_token]
 git = "ssh://git@github.com/boumba100/veronymous.git"
-rev = "5c56e49368a310832e12412c4af98f2e6ce77f3e"
+rev = "880519bacd02736de19036295c4c43eb35007cd1"

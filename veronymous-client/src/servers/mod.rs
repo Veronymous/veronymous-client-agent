@@ -1,11 +1,13 @@
 use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
-use crate::error::VeronymousClientError::{DeserializationError, HttpError, IllegalArgumentError, NotFoundError, ParseError};
+use crate::error::VeronymousClientError::{
+    DeserializationError, HttpError, IllegalArgumentError, NotFoundError, ParseError,
+};
 use crate::vpn::VpnProfile;
+use rand::Rng;
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use rand::Rng;
 
 type DomainId = String;
 type ServerId = String;
@@ -68,7 +70,12 @@ impl VpnServers {
     pub fn find_server(&self, domain: &DomainId) -> Result<&VpnProfile, VeronymousClientError> {
         let vpn_profiles = match self.servers.get(domain) {
             Some(vpn_profiles) => vpn_profiles,
-            None => return Err(NotFoundError(format!("Could not find server for name {}", domain)))
+            None => {
+                return Err(NotFoundError(format!(
+                    "Could not find server for name {}",
+                    domain
+                )))
+            }
         };
 
         // Get a random profile

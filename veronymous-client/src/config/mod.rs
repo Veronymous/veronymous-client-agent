@@ -32,7 +32,9 @@ impl Default for VeronymousClientConfig {
             // 1 minute
             epoch_buffer: 60,
             // 12 hours
-            key_lifetime: 43200,
+            // key_lifetime: 43200,
+            // 10 minutes
+            key_lifetime: 600,
             oidc_endpoint:
                 "http://172.20.0.3:8080/realms/veronymous-vpn/protocol/openid-connect/token"
                     .to_string(),
