@@ -29,10 +29,12 @@ impl CliVpnClient {
             VERONYMOUS_CLIENT_CONFIG.oidc_endpoint.clone(),
             VERONYMOUS_CLIENT_CONFIG.oidc_client_id.clone(),
         );
-        let token_client =
-            VeronymousTokenClient::create(VERONYMOUS_CLIENT_CONFIG.token_endpoint.clone())
-                .await
-                .map_err(|e| InitializationError(e.to_string()))?;
+        let token_client = VeronymousTokenClient::create(
+            &VERONYMOUS_CLIENT_CONFIG.token_endpoint,
+            &VERONYMOUS_CLIENT_CONFIG.token_endpoint_ca,
+        )
+        .await
+        .map_err(|e| InitializationError(e.to_string()))?;
 
         let veronymous_client = VeronymousClient::new(oidc_client, token_client);
         Ok(Self { veronymous_client })

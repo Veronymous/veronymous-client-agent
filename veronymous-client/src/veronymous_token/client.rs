@@ -1,9 +1,10 @@
+use std::str::FromStr;
 use crypto_common::rand_non_zero_fr;
 use ps_signatures::keys::{PsParams, PsPublicKey};
 use ps_signatures::serde::Serializable;
 use rand::thread_rng;
 use tonic::metadata::{Ascii, MetadataKey, MetadataValue};
-use tonic::transport::Channel;
+use tonic::transport::{Channel, Endpoint};
 use veronymous_token::root::RootVeronymousToken;
 use veronymous_token::root_exchange::{complete_root_token, create_root_token_request, RootTokenResponse};
 use veronymous_token::serde::Serializable as TokenSerializable;
@@ -25,7 +26,17 @@ pub struct VeronymousTokenClient {
 }
 
 impl VeronymousTokenClient {
-    pub async fn create(endpoint: String) -> Result<Self, VeronymousClientError> {
+    pub async fn create(endpoint: &String, ca: &String) -> Result<Self, VeronymousClientError> {
+        // TLS configuration
+        let ca = tonic::transport::Certificate::from_pem(Vec::from(ca.as_bytes()));
+
+        let tls_config = tonic::transport::ClientTlsConfig::new().ca_certificate(ca);
+
+        let endpoint = Endpoint::from_str(endpoint.as_str())
+            .unwrap()
+            .tls_config(tls_config)
+            .unwrap();
+
         let grpc_client = VeronymousUserTokenServiceClient::connect(endpoint)
             .await
             .map_err(|e| TokenClientError(format!("Could not connect to token issuer. {:?}", e)))?;
@@ -75,7 +86,7 @@ impl VeronymousTokenClient {
             &issuer_key,
             &issuer_key_params,
         )
-        .map_err(|e| TokenClientError(format!("Could not complete root token. {:?}", e)))?;
+            .map_err(|e| TokenClientError(format!("Could not complete root token. {:?}", e)))?;
 
         Ok(root_token)
     }
