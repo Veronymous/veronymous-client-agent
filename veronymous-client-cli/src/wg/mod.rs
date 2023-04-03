@@ -46,6 +46,14 @@ pub fn wg_up(connection: &VpnConnection, tunnel_only: bool) -> Result<(), CliCli
 }
 
 pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), CliClientError> {
+    // Configure the wireguard interface
+    configure_wg(
+        &connection.client_private_key,
+        &connection.client_public_key,
+        &connection.wg_public_key,
+        &connection.wg_endpoint,
+    )?;
+
     // Flush wireguard addresses
     flush_wg_addresses()?;
 
@@ -53,14 +61,6 @@ pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), C
     assign_wg_addresses(
         &connection.client_addresses[0],
         &connection.client_addresses[1],
-    )?;
-
-    // Configure the wireguard interface
-    configure_wg(
-        &connection.client_private_key,
-        &connection.client_public_key,
-        &connection.wg_public_key,
-        &connection.wg_endpoint,
     )?;
 
     if !tunnel_only {
