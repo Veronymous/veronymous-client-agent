@@ -141,10 +141,16 @@ impl VeronymousClient {
         vpn_profile: &VpnProfile,
         auth_token: VeronymousToken,
     ) -> Result<VpnConnection, VeronymousClientError> {
+
+        let root_cert = match &vpn_profile.root_cert {
+            None => None,
+            Some(cert) => Some(cert.as_bytes())
+        };
+
         // Create the client
         let mut router_client = VeronymousRouterClient::new(
             &vpn_profile.agent_endpoint,
-            vpn_profile.root_cert.as_bytes(),
+            root_cert,
         )
         .await
         .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;

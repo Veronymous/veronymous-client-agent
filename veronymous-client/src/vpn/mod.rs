@@ -7,7 +7,7 @@ pub struct VpnProfile {
     // pub agent_endpoint: Endpoint,
     pub agent_endpoint: String,
 
-    pub root_cert: String,
+    pub root_cert: Option<String>,
 
     // Wireguard endpoint
     pub wg_endpoint: String,
@@ -20,7 +20,7 @@ impl VpnProfile {
     pub fn new(
         domain: String,
         agent_endpoint: String,
-        root_cert: String,
+        root_cert: Option<String>,
         wg_endpoint: String,
         wg_key: String,
     ) -> Self {
@@ -78,7 +78,7 @@ wIieRFPJFKt7IAQE8g3/2VF12EeS
         VpnProfile {
             domain: "dev_domain".to_string(),
             agent_endpoint: "localhost.veronymous.io:7777".to_string(),
-            root_cert: root_cert.to_string(),
+            root_cert: Some(root_cert.to_string()),
             wg_endpoint: "wg1.ny.veronymous.io:51820".to_string(),
             wg_key: "/ZjSUjxcDiHHxBifHX0yVekKklDmczNv8k7M3AgmXXg=".to_string(),
         }

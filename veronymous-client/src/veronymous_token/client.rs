@@ -26,16 +26,18 @@ pub struct VeronymousTokenClient {
 }
 
 impl VeronymousTokenClient {
-    pub async fn create(endpoint: &String, ca: &String) -> Result<Self, VeronymousClientError> {
-        // TLS configuration
-        let ca = tonic::transport::Certificate::from_pem(Vec::from(ca.as_bytes()));
-
-        let tls_config = tonic::transport::ClientTlsConfig::new().ca_certificate(ca);
-
-        let endpoint = Endpoint::from_str(endpoint.as_str())
-            .unwrap()
-            .tls_config(tls_config)
+    pub async fn create(endpoint: &String, ca: &Option<String>) -> Result<Self, VeronymousClientError> {
+        let mut endpoint = Endpoint::from_str(endpoint.as_str())
             .unwrap();
+
+        // TLS config
+        if let Some(ca) = ca {
+            let ca = tonic::transport::Certificate::from_pem(Vec::from(ca.as_bytes()));
+
+            let tls_config = tonic::transport::ClientTlsConfig::new().ca_certificate(ca);
+
+            endpoint = endpoint.tls_config(tls_config).unwrap();
+        }
 
         let grpc_client = VeronymousUserTokenServiceClient::connect(endpoint)
             .await
