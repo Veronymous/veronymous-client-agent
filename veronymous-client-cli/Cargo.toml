@@ -9,6 +9,7 @@ edition = "2021"
 default = ["dev-local"]
 dev-local = ["veronymous-client/dev-local"]
 dev-env = ["veronymous-client/dev-env"]
+production = ["veronymous-client/production"]
 
 [dependencies]
 thiserror = "1.0.32"

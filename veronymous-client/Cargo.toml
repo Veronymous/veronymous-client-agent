@@ -9,6 +9,7 @@ edition = "2021"
 default = ["dev-local"]
 dev-local = []
 dev-env = []
+production = []
 
 [dependencies]
 config = "0.13.3"

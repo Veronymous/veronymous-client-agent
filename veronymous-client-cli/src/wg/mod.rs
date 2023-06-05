@@ -3,9 +3,11 @@ use crate::error::CliClientError::{CommandError, IoError};
 use rustc_serialize::hex::ToHex;
 use std::env::temp_dir;
 use std::fs;
+use std::net::ToSocketAddrs;
 use std::path::PathBuf;
 use std::process::Command;
 use veronymous_client::client::state::VpnConnection;
+use veronymous_client::config::VERONYMOUS_CLIENT_CONFIG;
 
 pub fn wg_down() -> Result<(), CliClientError> {
     // Delete the interface. Ignore error (thrown if the interface does not exists)
@@ -17,6 +19,9 @@ pub fn wg_down() -> Result<(), CliClientError> {
 }
 
 pub fn wg_up(connection: &VpnConnection, tunnel_only: bool) -> Result<(), CliClientError> {
+    // Set out-of-band IP routes
+    set_out_of_band_routes()?;
+
     // Tear down existing connection
     wg_down()?;
 
@@ -65,6 +70,56 @@ pub fn wg_refresh(connection: &VpnConnection, tunnel_only: bool) -> Result<(), C
 
     if !tunnel_only {
         configure_routing()?;
+    }
+
+    Ok(())
+}
+
+/*
+* Set the routes that will not use the vpn tunnel.
+* Token issuer endpoint - To prevent correlation with the auth token
+*/
+fn set_out_of_band_routes() -> Result<(), CliClientError> {
+    for host in &VERONYMOUS_CLIENT_CONFIG.out_of_band_hosts {
+        set_out_of_band_host_route(host)?;
+    }
+
+    Ok(())
+}
+
+fn set_out_of_band_host_route(host: &String) -> Result<(), CliClientError> {
+    let addrs = host
+        .to_socket_addrs()
+        .map_err(|err| CommandError(err.to_string()))?;
+
+    for addr in addrs {
+        set_out_of_band_ip_route(addr.ip().to_string())?;
+    }
+
+    Ok(())
+}
+
+fn set_out_of_band_ip_route(ip_addr: String) -> Result<(), CliClientError> {
+    // Get the out-of-band route
+    let mut route = run_command(&format!("ip route get {}", ip_addr))?;
+
+    // Remove new line from route
+    if route.contains("\n") {
+        route = route.splitn(2, "\n").next().unwrap().to_string();
+    }
+
+    // Remove the uuid
+    if route.contains("uid") {
+        route = route.splitn(2, "uid").next().unwrap().to_string();
+    }
+
+    match run_command(&format!("ip route add {}", route)) {
+        Ok(message) => {
+            debug!("{}", message)
+        }
+        Err(message) => {
+            debug!("{:?}", message)
+        }
     }
 
     Ok(())

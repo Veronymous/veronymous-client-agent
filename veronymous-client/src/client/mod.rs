@@ -57,7 +57,9 @@ impl VeronymousClient {
         let current_key_epoch = Self::get_current_key_epoch(Some(now));
         let active_key_epoch = Self::get_active_key_epoch(Some(now), Some(current_key_epoch));
 
-        debug!("current key epoch: {}", current_key_epoch);
+        debug!("Current epoch: {}", current_epoch);
+        debug!("Next key epoch: {}", next_epoch);
+        debug!("Current key epoch: {}", current_key_epoch);
         debug!("Active key epoch: {}", active_key_epoch);
 
         // Ensure the oidc tokens
