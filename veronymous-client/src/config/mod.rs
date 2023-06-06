@@ -101,7 +101,8 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----".to_string()),
             servers_endpoint: "https://files.veronymous.io/servers.json".to_string(),
             out_of_band_hosts: vec![
-                "token-issuer.veronymous.io:443".to_string()
+                "token-issuer.veronymous.io:443".to_string(),
+                "idp.veronymous.io:443".to_string()
             ],
         }
     }
