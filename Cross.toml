@@ -1,0 +1,28 @@
+[target.x86_64-unknown-linux-gnu]
+xargo = true
+build-std = true
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
+[target.i686-unknown-linux-gnu]
+xargo = true
+build-std = true
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+ 
+[target.aarch64-unknown-linux-gnu]
+xargo = true
+build-std = true
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
+[target.armv7-unknown-linux-gnueabihf]
+xargo = true
+build-std = true
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
