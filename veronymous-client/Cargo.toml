@@ -24,6 +24,9 @@ rand = "0.7"
 lazy_static = "1.4.0"
 regex = "1.6.0"
 log = "0.4.17"
+curve25519-dalek = { version = "4.1.1", features = ["rand_core"] }
+rand_core = "0.6.4"
+
 
 [dependencies.veronymous_router_client]
 git = "ssh://git@github.com/boumba100/veronymous.git"

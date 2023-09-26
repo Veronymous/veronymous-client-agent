@@ -17,3 +17,8 @@ pre-build = [
 pre-build = [
 	"apt-get install protobuf-compiler -y"
 ]
+
+[target.aarch64-linux-android]
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]

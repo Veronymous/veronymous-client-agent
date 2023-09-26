@@ -1,34 +1,19 @@
 use crate::error::VeronymousClientError;
 
-use crate::error::VeronymousClientError::CommandError;
-use std::process::Command;
+use curve25519_dalek::{EdwardsPoint, Scalar};
+use rand_core::OsRng;
 
 /*
 * NOTE: This will not work for non-linux platforms
  */
 
 pub fn generate_keypair() -> Result<(String, String), VeronymousClientError> {
-    let private_key = run_command(&"wg genkey".to_string())?.replace("\n", "");
-    let public_key = run_command(&format!("printf {} | wg pubkey", private_key))?.replace("\n", "");
+    let mut csprng = OsRng;
 
-    Ok((private_key, public_key))
-}
+    let private_key = Scalar::random(&mut csprng).to_bytes();
+    let public_key = EdwardsPoint::mul_base_clamped(private_key).to_montgomery();
 
-pub fn run_command(command: &String) -> Result<String, VeronymousClientError> {
-    let out = Command::new("sh")
-        .arg("-c")
-        .arg(command)
-        .output()
-        .map_err(|e| CommandError(e.to_string()))?;
-
-    if !out.status.success() {
-        return Err(CommandError(format!(
-            "Received an error: {}",
-            String::from_utf8_lossy(&out.stderr)
-        )));
-    }
-
-    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+    Ok((base64::encode(private_key), base64::encode(public_key.to_bytes())))
 }
 
 #[cfg(test)]
