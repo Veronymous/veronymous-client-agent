@@ -8,6 +8,9 @@ pub enum VeronymousClientError {
     #[error("User authentication is required")]
     AuthRequired(),
 
+    #[error("Subscription is required.")]
+    SubscriptionRequired(),
+
     #[error("OIDC error. {0}")]
     OidcError(String),
 

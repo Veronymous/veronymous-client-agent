@@ -3,9 +3,7 @@ pub mod state;
 use crate::client::state::{ClientState, IssuerInfo, IssuerInfos, RootTokens, VpnConnection};
 use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
-use crate::error::VeronymousClientError::{
-    AuthRequired, ConnectError, MissingIssuerInfoError, MissingTokenError, ParseError, TokenError,
-};
+use crate::error::VeronymousClientError::{AuthRequired, ConnectError, MissingIssuerInfoError, MissingTokenError, ParseError, SubscriptionRequired, TokenError};
 use crate::oidc::client::OidcClient;
 use crate::oidc::credentials::{OidcCredentials, OidcCredentialsStatus, UserCredentials};
 use crate::servers::VpnServers;
@@ -97,7 +95,7 @@ impl VeronymousClient {
             current_key_epoch,
             active_key_epoch,
         )
-        .await?;
+            .await?;
 
         // Ensure root token
         self.ensure_root_token(
@@ -107,7 +105,7 @@ impl VeronymousClient {
             current_key_epoch,
             active_key_epoch,
         )
-        .await?;
+            .await?;
 
         // Derive the authentication token
         let auth_token = Self::derive_auth_token(
@@ -143,19 +141,15 @@ impl VeronymousClient {
         vpn_profile: &VpnProfile,
         auth_token: VeronymousToken,
     ) -> Result<VpnConnection, VeronymousClientError> {
-
         let root_cert = match &vpn_profile.root_cert {
             None => None,
-            Some(cert) => Some(cert.as_bytes())
+            Some(cert) => Some(cert.as_bytes()),
         };
 
         // Create the client
-        let mut router_client = VeronymousRouterClient::new(
-            &vpn_profile.agent_endpoint,
-            root_cert,
-        )
-        .await
-        .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
+        let mut router_client = VeronymousRouterClient::new(&vpn_profile.agent_endpoint, root_cert)
+            .await
+            .map_err(|e| ConnectError(format!("Could not create router agent client. {:?}", e)))?;
 
         // Send a connection request
         let public_key_decoded = base64::decode(&public_key)
@@ -266,6 +260,9 @@ impl VeronymousClient {
             OidcCredentialsStatus::AuthRequired => {
                 return Err(AuthRequired());
             }
+            OidcCredentialsStatus::SubscriptionRequired => {
+                return Err(SubscriptionRequired());
+            }
         }
     }
 
@@ -281,7 +278,7 @@ impl VeronymousClient {
                 return Err(MissingTokenError(format!(
                     "Missing root token for key epoch: {}",
                     active_key_epoch
-                )))
+                )));
             }
             Some(root_token) => root_token,
         };

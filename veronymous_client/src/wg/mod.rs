@@ -13,7 +13,10 @@ pub fn generate_keypair() -> Result<(String, String), VeronymousClientError> {
     let private_key = Scalar::random(&mut csprng).to_bytes();
     let public_key = EdwardsPoint::mul_base_clamped(private_key).to_montgomery();
 
-    Ok((base64::encode(private_key), base64::encode(public_key.to_bytes())))
+    Ok((
+        base64::encode(private_key),
+        base64::encode(public_key.to_bytes()),
+    ))
 }
 
 #[cfg(test)]

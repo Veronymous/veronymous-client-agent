@@ -26,9 +26,11 @@ pub struct VeronymousTokenClient {
 }
 
 impl VeronymousTokenClient {
-    pub async fn create(endpoint: &String, ca: &Option<String>) -> Result<Self, VeronymousClientError> {
-        let mut endpoint = Endpoint::from_str(endpoint.as_str())
-            .unwrap();
+    pub async fn create(
+        endpoint: &String,
+        ca: &Option<String>,
+    ) -> Result<Self, VeronymousClientError> {
+        let mut endpoint = Endpoint::from_str(endpoint.as_str()).unwrap();
 
         // TLS config
         if let Some(ca) = ca {
@@ -88,7 +90,7 @@ impl VeronymousTokenClient {
             &issuer_key,
             &issuer_key_params,
         )
-            .map_err(|e| TokenClientError(format!("Could not complete root token. {:?}", e)))?;
+        .map_err(|e| TokenClientError(format!("Could not complete root token. {:?}", e)))?;
 
         Ok(root_token)
     }

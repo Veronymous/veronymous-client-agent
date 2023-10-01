@@ -1,5 +1,8 @@
+use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
-use crate::oidc::token::decode_jwt_payload;
+use crate::oidc::token::{
+    decode_jwt_payload, AccessTokenPayload, RefreshTokenPayload,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -16,8 +19,8 @@ impl OidcCredentials {
         next_epoch: u64,
     ) -> Result<OidcCredentialsStatus, VeronymousClientError> {
         // Decode the access and refresh tokens
-        let access_token = decode_jwt_payload(&self.access_token)?;
-        let refresh_token = decode_jwt_payload(&self.refresh_token)?;
+        let access_token: AccessTokenPayload = decode_jwt_payload(&self.access_token)?;
+        let refresh_token: RefreshTokenPayload = decode_jwt_payload(&self.refresh_token)?;
 
         debug!("Getting oidc credentials status.");
         debug!("Access token: {}", self.access_token);
@@ -27,7 +30,10 @@ impl OidcCredentials {
         debug!("Access token: {:?}", access_token);
         debug!("Refresh token: {:?}", refresh_token);
 
-        return if refresh_token.exp <= now {
+        return if !Self::has_subscription(&access_token)? {
+            debug!("Does not have a subscription");
+            Ok(OidcCredentialsStatus::SubscriptionRequired)
+        } else if refresh_token.exp <= now {
             debug!("Refresh token is expired.");
             Ok(OidcCredentialsStatus::AuthRequired)
         } else if refresh_token.exp <= next_epoch - 60 {
@@ -41,6 +47,24 @@ impl OidcCredentials {
             Ok(OidcCredentialsStatus::OK)
         };
     }
+
+    fn has_subscription(token: &AccessTokenPayload) -> Result<bool, VeronymousClientError> {
+        // Get the resource access for the subscription oidc client
+        let resource_access = match token
+            .resource_access
+            .get(&VERONYMOUS_CLIENT_CONFIG.sub_oidc_client_id)
+        {
+            Some(resource_access) => resource_access,
+            None => {
+                return Ok(false);
+            }
+        };
+
+        // Check the subscription role
+        Ok(resource_access
+            .roles
+            .contains(&VERONYMOUS_CLIENT_CONFIG.sub_oidc_role))
+    }
 }
 
 #[derive(Debug)]
@@ -48,6 +72,7 @@ pub enum OidcCredentialsStatus {
     OK,
     RefreshRequired,
     AuthRequired,
+    SubscriptionRequired,
 }
 
 #[derive(Clone, Debug)]
