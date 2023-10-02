@@ -33,8 +33,8 @@ impl CliVpnClient {
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint,
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint_ca,
         )
-        .await
-        .map_err(|e| InitializationError(e.to_string()))?;
+            .await
+            .map_err(|e| InitializationError(e.to_string()))?;
 
         let veronymous_client = VeronymousClient::new(oidc_client, token_client);
         Ok(Self { veronymous_client })
@@ -60,8 +60,8 @@ impl CliVpnClient {
         Ok(())
     }
 
-    pub async fn get_servers(&self) -> Result<Vec<String>, CliClientError> {
-        let mut vpn_servers = Self::read_vpn_servers(None)?;
+    pub async fn get_servers(&self, path: Option<String>) -> Result<Vec<String>, CliClientError> {
+        let mut vpn_servers = Self::read_vpn_servers(path)?;
 
         Self::update_servers(&mut vpn_servers).await?;
 
@@ -130,6 +130,16 @@ impl CliVpnClient {
                         // This is to prevent saving inadequate credentials
                         client_state.oidc_credentials = None;
                     }
+                    VeronymousClientError::AuthRequired() => {
+                        client_state.oidc_credentials = None;
+                    },
+                    VeronymousClientError::SubscriptionRequired() => {
+                        client_state.oidc_credentials = None;
+
+                        Self::save_client_state(&mut client_state, None)?;
+
+                        return Err(CliClientError::SubscriptionRequired)
+                    },
                     _ => {}
                 };
 
@@ -259,7 +269,7 @@ impl CliVpnClient {
         // Check if currently in buffer
         if VERONYMOUS_CLIENT_CONFIG.epoch_buffer
             > (VERONYMOUS_CLIENT_CONFIG.epoch_length
-                - (now % VERONYMOUS_CLIENT_CONFIG.epoch_length))
+            - (now % VERONYMOUS_CLIENT_CONFIG.epoch_length))
         {
             // Go to the subsequent epoch
             next_epoch += VERONYMOUS_CLIENT_CONFIG.epoch_length;

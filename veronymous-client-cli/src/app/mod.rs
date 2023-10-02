@@ -48,7 +48,7 @@ async fn run_list_servers(_matches: &ArgMatches) {
     // Set the Ctrl-C handler
     set_disconnect_handler();
 
-    let servers = match vpn_client.get_servers().await {
+    let servers = match vpn_client.get_servers(None).await {
         Ok(servers) => servers,
         Err(error) => {
             println!("An error has occurred.");
@@ -78,10 +78,17 @@ async fn connect(
                     user_auth(&client).await;
                     return true;
                 }
+                VeronymousClientError::SubscriptionRequired() => {
+                    debug!("Subscription is required");
+                    return false;
+                }
                 _ => {
                     error!("An error has occurred. {:?}", error);
                 }
             },
+            CliClientError::SubscriptionRequired => {
+                error!("VPN Subscription is required.");
+            }
             _ => {
                 error!("An error has occurred. {:?}", error);
             }
@@ -105,6 +112,9 @@ async fn user_auth(client: &CliVpnClient) {
                 VeronymousClientError::OidcError(_) => {
                     error!("Authentication failed.");
                 }
+                VeronymousClientError::SubscriptionRequired() => {
+                    error!("VPN subscription is required.");
+                }
                 _ => {
                     error!("An error has occurred. {:?}", e);
                 }
@@ -122,7 +132,7 @@ fn set_disconnect_handler() {
 
         disconnect();
     })
-    .expect("Could not set ctrl-c handler.");
+        .expect("Could not set ctrl-c handler.");
 }
 
 fn disconnect() {

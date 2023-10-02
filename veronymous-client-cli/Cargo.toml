@@ -7,9 +7,9 @@ edition = "2021"
 
 [features]
 default = ["dev-local"]
-dev-local = ["veronymous-client/dev-local"]
-dev-env = ["veronymous-client/dev-env"]
-production = ["veronymous-client/production"]
+dev-local = ["veronymous_client/dev-local"]
+dev-env = ["veronymous_client/dev-env"]
+production = ["veronymous_client/production"]
 
 [dependencies]
 thiserror = "1.0.32"
@@ -23,8 +23,8 @@ tokio = "1.20.1"
 serde_json = "1.0.85"
 rustc-serialize = "0.3.24"
 
-[dependencies.veronymous-client]
-path = "../veronymous-client"
+[dependencies.veronymous_client]
+path = "../veronymous_client"
 optional = true
 
 [dependencies.veronymous_token]
