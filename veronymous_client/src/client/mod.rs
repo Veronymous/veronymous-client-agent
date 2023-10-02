@@ -3,7 +3,10 @@ pub mod state;
 use crate::client::state::{ClientState, IssuerInfo, IssuerInfos, RootTokens, VpnConnection};
 use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
-use crate::error::VeronymousClientError::{AuthRequired, ConnectError, MissingIssuerInfoError, MissingTokenError, ParseError, SubscriptionRequired, TokenError};
+use crate::error::VeronymousClientError::{
+    AuthRequired, ConnectError, MissingIssuerInfoError, MissingTokenError, ParseError,
+    SubscriptionRequired, TokenError,
+};
 use crate::oidc::client::OidcClient;
 use crate::oidc::credentials::{OidcCredentials, OidcCredentialsStatus, UserCredentials};
 use crate::servers::VpnServers;
@@ -35,6 +38,10 @@ impl VeronymousClient {
         client_state: &mut ClientState,
     ) -> Result<(), VeronymousClientError> {
         let oidc_credentials = self.oidc_client.fetch_tokens(credentials).await?;
+
+        if !oidc_credentials.has_subscription()? {
+            return Err(SubscriptionRequired());
+        }
 
         client_state.oidc_credentials = Some(oidc_credentials);
 

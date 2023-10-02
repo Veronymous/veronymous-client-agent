@@ -25,5 +25,5 @@ pub enum CliClientError {
     VeronymousClientError(VeronymousClientError),
 
     #[error("Subscription required")]
-    SubscriptionRequired
+    SubscriptionRequired,
 }

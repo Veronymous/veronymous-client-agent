@@ -1,8 +1,6 @@
 use crate::config::VERONYMOUS_CLIENT_CONFIG;
 use crate::error::VeronymousClientError;
-use crate::oidc::token::{
-    decode_jwt_payload, AccessTokenPayload, RefreshTokenPayload,
-};
+use crate::oidc::token::{decode_jwt_payload, AccessTokenPayload, RefreshTokenPayload};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -30,7 +28,7 @@ impl OidcCredentials {
         debug!("Access token: {:?}", access_token);
         debug!("Refresh token: {:?}", refresh_token);
 
-        return if !Self::has_subscription(&access_token)? {
+        return if !Self::token_has_subscription(&access_token)? {
             debug!("Does not have a subscription");
             Ok(OidcCredentialsStatus::SubscriptionRequired)
         } else if refresh_token.exp <= now {
@@ -48,7 +46,14 @@ impl OidcCredentials {
         };
     }
 
-    fn has_subscription(token: &AccessTokenPayload) -> Result<bool, VeronymousClientError> {
+    pub fn has_subscription(&self) -> Result<bool, VeronymousClientError> {
+        // Decode the access token
+        let access_token: AccessTokenPayload = decode_jwt_payload(&self.access_token)?;
+
+        Self::token_has_subscription(&access_token)
+    }
+
+    fn token_has_subscription(token: &AccessTokenPayload) -> Result<bool, VeronymousClientError> {
         // Get the resource access for the subscription oidc client
         let resource_access = match token
             .resource_access

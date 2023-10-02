@@ -1,3 +1,6 @@
 /target
 Cargo.lock
-veronymous-client/target/
+veronymous_client/target/
+veronymous-client-java/veronymous-client-java/target
+veronymous-client-java/.idea
+.idea/

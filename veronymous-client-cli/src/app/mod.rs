@@ -132,7 +132,7 @@ fn set_disconnect_handler() {
 
         disconnect();
     })
-        .expect("Could not set ctrl-c handler.");
+    .expect("Could not set ctrl-c handler.");
 }
 
 fn disconnect() {

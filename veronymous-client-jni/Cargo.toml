@@ -1,0 +1,21 @@
+[package]
+name = "veronymous-client-jni"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["dev-local"]
+dev-local = ["veronymous_client/dev-local"]
+dev-env = ["veronymous_client/dev-env"]
+production = ["veronymous_client/production"]
+
+[dependencies]
+jni = "0.21.1"
+serde_json = "1.0.85"
+tokio = "1.32.0"
+
+[dependencies.veronymous_client]
+path = "../veronymous_client"
+
+[lib]
+crate_type = ["cdylib"]
