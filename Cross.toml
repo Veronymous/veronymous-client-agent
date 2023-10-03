@@ -22,3 +22,29 @@ pre-build = [
 pre-build = [
 	"apt-get install protobuf-compiler -y"
 ]
+
+[target.arm-linux-androideabi]
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
+[target.armv7-linux-androideabi]
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
+[target.i686-linux-android]
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
+[target.thumbv7neon-linux-androideabi]
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
+
+
+[target.x86_64-linux-android]
+pre-build = [
+	"apt-get install protobuf-compiler -y"
+]
