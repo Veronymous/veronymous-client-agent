@@ -48,6 +48,18 @@ impl VeronymousClient {
         Ok(())
     }
 
+    pub async fn refresh_auth_token(
+        &self,
+        client_state: &mut ClientState,
+    ) -> Result<(), VeronymousClientError> {
+        match &mut client_state.oidc_credentials {
+            Some(credentials) => self.oidc_client.refresh_tokens(credentials).await?,
+            None => return Err(AuthRequired()),
+        };
+
+        Ok(())
+    }
+
     pub async fn connect(
         &mut self,
         domain: &String,
@@ -102,7 +114,7 @@ impl VeronymousClient {
             current_key_epoch,
             active_key_epoch,
         )
-            .await?;
+        .await?;
 
         // Ensure root token
         self.ensure_root_token(
@@ -112,7 +124,7 @@ impl VeronymousClient {
             current_key_epoch,
             active_key_epoch,
         )
-            .await?;
+        .await?;
 
         // Derive the authentication token
         let auth_token = Self::derive_auth_token(

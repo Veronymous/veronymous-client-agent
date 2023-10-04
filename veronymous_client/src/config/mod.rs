@@ -117,7 +117,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
                 "token-issuer.veronymous.io:443".to_string(),
                 "idp.veronymous.io:443".to_string(),
             ],
-            sub_oidc_client_id: "user-token-service".to_string(),
+            sub_oidc_client_id: "user-token-issuer".to_string(),
             sub_oidc_role: "vpn-user".to_string(),
         }
     }

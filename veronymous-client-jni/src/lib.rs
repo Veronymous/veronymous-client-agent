@@ -251,6 +251,53 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_authent
             .await
     });
 
+    to_java_auth_result(&mut env, &client_state, &authentication_result)
+}
+
+#[no_mangle]
+pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_refreshAuthToken<
+    'local,
+>(
+    mut env: JNIEnv,
+    _class: JClass,
+    client_state_input: JString<'local>,
+) -> jobject {
+    let mut client_state = read_client_state(&mut env, &client_state_input);
+
+    // Create the tokio runtime for running async functions
+    let runtime = runtime::Runtime::new().expect("Could not create tokio runtime.");
+
+    let authentication_result = runtime.block_on(async {
+        // Create open id connect client
+        let oidc_client = OidcClient::new(
+            VERONYMOUS_CLIENT_CONFIG.oidc_endpoint.clone(),
+            VERONYMOUS_CLIENT_CONFIG.oidc_client_id.clone(),
+        );
+
+        // Create token client
+        let token_client = VeronymousTokenClient::create(
+            &VERONYMOUS_CLIENT_CONFIG.token_endpoint,
+            &VERONYMOUS_CLIENT_CONFIG.token_endpoint_ca,
+        )
+            .await
+            .expect("Could not create token client.");
+
+        // Create the Veronymous client
+        let veronymous_client = VeronymousClient::new(oidc_client, token_client);
+
+        veronymous_client
+            .refresh_auth_token(&mut client_state)
+            .await
+    });
+
+    to_java_auth_result(&mut env, &client_state, &authentication_result)
+}
+
+fn to_java_auth_result<'a>(
+    env: &mut JNIEnv<'a>,
+    client_state: &ClientState,
+    authentication_result: &Result<(), VeronymousClientError>,
+) -> jobject {
     // Assemble the java result
     let java_client_state = env
         .new_string(to_string(&client_state).expect("Could not serialize client state to json"))
@@ -262,27 +309,25 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_authent
             JObject::null(),
             JValue::Bool(false as jboolean),
         ),
-        Err(err) => {
-            match err {
-                VeronymousClientError::SubscriptionRequired() => (
-                    JValue::Bool(false as jboolean),
-                    JObject::null(),
-                    JValue::Bool(true as jboolean),
-                ),
-                _ => {
-                    let java_error: JObject = env
-                        .new_string(format!("{:?}", err))
-                        .expect("Could not create java string")
-                        .into();
+        Err(err) => match err {
+            VeronymousClientError::SubscriptionRequired() => (
+                JValue::Bool(false as jboolean),
+                JObject::null(),
+                JValue::Bool(true as jboolean),
+            ),
+            _ => {
+                let java_error: JObject = env
+                    .new_string(format!("{:?}", err))
+                    .expect("Could not create java string")
+                    .into();
 
-                    (
-                        JValue::Bool(true as jboolean),
-                        java_error,
-                        JValue::Bool(false as jboolean),
-                    )
-                }
+                (
+                    JValue::Bool(true as jboolean),
+                    java_error,
+                    JValue::Bool(false as jboolean),
+                )
             }
-        }
+        },
     };
 
     let java_authenticate_result = env
