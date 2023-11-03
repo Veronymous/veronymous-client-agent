@@ -7,7 +7,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import io.veronymous.android.veronymous.client.VeronymousClient
@@ -62,7 +61,11 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
 
                     when (status) {
                         AuthStatus.AUTHENTICATED -> goToServersView()
-                        AuthStatus.SUBSCRIPTION_REQUIRED -> goToSubscribeView()
+                        AuthStatus.SUBSCRIPTION_REQUIRED -> handleSubscriptionRequired(
+                            emailInput,
+                            passwordInput,
+                            authErrorMessage
+                        )
                         AuthStatus.AUTHENTICATION_REQUIRED -> handleAuthFailed(
                             emailInput,
                             passwordInput,
@@ -93,8 +96,15 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
         }
     }
 
-    private fun goToSubscribeView() {
-        Log.d(TAG, "Going to the subscription view.")
+    private fun handleSubscriptionRequired(
+        emailInput: EditText,
+        passwordInput: EditText,
+        authErrorMessage: TextView
+    ) {
+        emailInput.setText("")
+        passwordInput.setText("")
+        authErrorMessage.setText(R.string.subscription_required_message)
+        authErrorMessage.visibility = View.VISIBLE
     }
 
     private fun handleAuthFailed(
@@ -104,6 +114,7 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     ) {
         emailInput.setText("")
         passwordInput.setText("")
+        authErrorMessage.setText(R.string.invalid_email_or_password_message)
         authErrorMessage.visibility = View.VISIBLE
     }
 }
