@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Veronymous VPN</string>
+    <string name="connect">Connect</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="authenticate">Authenticate</string>
+    <string name="select_server">Select a Server</string>
+    <string name="vpn_server">VPN Server</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="veronymous">Veronymous</string>
+    <string name="select_server_title">Select Location</string>
+    <string name="authenticate_title">Get ZK Credentials</string>
+    <string name="connecting_title">Connecting</string>
+    <string name="connecting_to_location">Connecting to %s…</string>
+    <string name="connected_title">Connected</string>
+    <string name="connecting">Connecting…</string>
+    <string name="disconnecting">Disconnecting…</string>
+    <string name="disconnecting_title">Disconnecting</string>
+    <string name="continue_title">Continue</string>
+    <string name="invalid_email_or_password_message">Invalid email address or password. Please try again or reset password at https://veronymous.io.</string>
+</resources>

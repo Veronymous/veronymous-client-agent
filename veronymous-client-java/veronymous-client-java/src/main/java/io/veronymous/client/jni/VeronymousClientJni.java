@@ -11,4 +11,6 @@ public class VeronymousClientJni {
     public static native ConnectResult connect(String domain, String clientState, String serversState);
 
     public static native AuthenticateResult authenticate(String username, String password, String clientState);
+
+    public static native AuthenticateResult refreshAuthToken(String clientState);
 }

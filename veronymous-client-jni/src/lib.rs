@@ -7,6 +7,7 @@ use veronymous_client::client::state::ClientState;
 use veronymous_client::client::VeronymousClient;
 use veronymous_client::config::VERONYMOUS_CLIENT_CONFIG;
 use veronymous_client::error::VeronymousClientError;
+use veronymous_client::error::VeronymousClientError::VeronymousError;
 use veronymous_client::oidc::client::OidcClient;
 use veronymous_client::oidc::credentials::UserCredentials;
 
@@ -41,9 +42,10 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_getServ
     let runtime = runtime::Runtime::new().expect("Could not create tokio runtime.");
 
     // Update the servers
+    // TODO: Properly throw error
     let updated = runtime
         .block_on(servers_state.update())
-        .expect("Could not update servers state");
+        .expect("Could not update servers.");
 
     // Construct the response
     let java_servers_state = create_java_servers_state(
@@ -116,14 +118,14 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_connect
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint,
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint_ca,
         )
-            .await
-            .expect("Could not create token client.");
+        .await
+        .map_err(|e| VeronymousError(format!("{:?}", e)))?;
 
         // Update the servers state
         servers_state_updated = servers_state
             .update()
             .await
-            .expect("Could not update servers state.");
+            .map_err(|e| VeronymousError(format!("{:?}", e)))?;
 
         // Create the Veronymous client
         let mut veronymous_client = VeronymousClient::new(oidc_client, token_client);
@@ -239,8 +241,8 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_authent
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint,
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint_ca,
         )
-            .await
-            .expect("Could not create token client.");
+        .await
+        .map_err(|e| VeronymousError(format!("{:?}", e)))?;
 
         // Create the Veronymous client
         let veronymous_client = VeronymousClient::new(oidc_client, token_client);
@@ -279,8 +281,8 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_refresh
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint,
             &VERONYMOUS_CLIENT_CONFIG.token_endpoint_ca,
         )
-            .await
-            .expect("Could not create token client.");
+        .await
+        .expect("Could not create token client.");
 
         // Create the Veronymous client
         let veronymous_client = VeronymousClient::new(oidc_client, token_client);
@@ -364,7 +366,7 @@ fn create_java_servers_state<'a>(
             JValue::Object(&java_servers_state),
         ],
     )
-        .unwrap()
+    .unwrap()
 }
 
 fn to_j_array<'a>(env: &mut JNIEnv<'a>, array: Vec<String>) -> JObjectArray<'a> {

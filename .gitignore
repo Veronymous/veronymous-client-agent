@@ -4,3 +4,5 @@ veronymous_client/target/
 veronymous-client-java/veronymous-client-java/target
 veronymous-client-java/.idea
 .idea/
+veronymous-android-app/app/build
+veronymous-android-app/app/android-veronymous-client/build

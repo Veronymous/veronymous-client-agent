@@ -65,12 +65,18 @@ public class VeronymousClientJniTest {
 //    }
 //
 //    @Test
-//    public void authenticate() {
+//    public void authenticate() throws IllegalStateException {
 //        String clientState = VeronymousClientJni.newClientState();
 //
-//        AuthenticateResult result = VeronymousClientJni.authenticate("user1", "password1", clientState);
+//        AuthenticateResult result = VeronymousClientJni.authenticate("user1", "password", clientState);
 ////        AuthenticateResult result = VeronymousClientJni.authenticate("user2", "password", clientState);
 //
 //        Assertions.assertNotNull(result);
+//
+//        clientState = result.getClientState();
+//
+//        AuthenticateResult refreshResult = VeronymousClientJni.refreshAuthToken(clientState);
+//
+//        Assertions.assertNotNull(refreshResult);
 //    }
 }

@@ -49,4 +49,8 @@ pub enum VeronymousClientError {
 
     #[error("Not found. {0}")]
     NotFoundError(String),
+
+    #[error("Veronymous error. {0}")]
+    VeronymousError(String),
+
 }
