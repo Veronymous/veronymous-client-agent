@@ -45,8 +45,8 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     ) {
         Log.d(TAG, "Authenticating...");
 
-        // Reset teh auth error message view
-        authErrorMessage.visibility = View.VISIBLE
+        // Reset the auth error message view
+        authErrorMessage.visibility = View.INVISIBLE
 
         val email = emailInput.text.toString()
         val password = passwordInput.text.toString()
