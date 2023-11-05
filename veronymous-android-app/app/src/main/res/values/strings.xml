@@ -17,6 +17,6 @@
     <string name="disconnecting">Disconnecting…</string>
     <string name="disconnecting_title">Disconnecting</string>
     <string name="continue_title">Continue</string>
-    <string name="invalid_email_or_password_message">Invalid email address or password. Please try again or reset password at https://veronymous.io.</string>
-    <string name="subscription_required_message">A subscription is required to continue. Please subscribe at https://veronymous.io.</string>
+    <string name="invalid_email_or_password_message">Invalid email address or password. Please try again or reset password at veronymous.io.</string>
+    <string name="subscription_required_message">A subscription is required to continue. Please subscribe at veronymous.io.</string>
 </resources>
