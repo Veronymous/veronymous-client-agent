@@ -71,8 +71,8 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-//    implementation("androidx.constraintlayout:constraintlayout:2.2.0-alpha12")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     implementation("androidx.work:work-runtime-ktx:2.8.1")
 

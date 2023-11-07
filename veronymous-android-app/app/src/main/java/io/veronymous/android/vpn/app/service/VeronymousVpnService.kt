@@ -7,7 +7,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.VpnService
 import android.os.Binder
 import android.os.Build
@@ -33,7 +32,6 @@ import io.veronymous.android.vpn.app.state.VpnState
 import io.veronymous.android.vpn.app.ui.activities.MainActivity
 import io.veronymous.android.vpn.app.wg.VeronymousTunnel
 import io.veronymous.client.exceptions.VeronymousClientException
-import java.lang.IllegalStateException
 import java.time.Instant
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit

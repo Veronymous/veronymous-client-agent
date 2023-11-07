@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.VeronymousVPN" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.VeronymousVPN" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/veron</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">
+            @color/veron
+        </item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">
+            @drawable/splash_screen
+        </item>
+    </style>
+
 </resources>

@@ -1,18 +1,27 @@
 package io.veronymous.android.vpn.app.ui.fragments
 
+import android.Manifest
 import android.app.Activity.RESULT_OK
+import android.app.AlarmManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.AdapterView.VISIBLE
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ListView
 import android.widget.TextView
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
@@ -20,8 +29,12 @@ import io.veronymous.android.veronymous.client.VeronymousClient
 import io.veronymous.android.veronymous.client.listener.VeronymousTaskListener
 import io.veronymous.android.vpn.app.R
 import io.veronymous.android.vpn.app.service.VeronymousVpnService
+import io.veronymous.android.vpn.app.ui.dialog.InfoDialog
+import io.veronymous.android.vpn.app.ui.dialog.RequestAlarmDialog
+import io.veronymous.android.vpn.app.ui.dialog.RequestPermissionDialog
 import io.veronymous.android.vpn.app.ui.fragments.adapters.ServerListAdapter
 import io.veronymous.client.exceptions.VeronymousClientException
+import java.lang.UnsupportedOperationException
 
 class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
 
@@ -31,6 +44,8 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
 
     private var selectedServer: String? = null
 
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+
     private lateinit var requestVpnPermissionLauncher: ActivityResultLauncher<Intent>
 
     private lateinit var connectButton: Button
@@ -38,8 +53,21 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val title = this.requireActivity().findViewById<TextView>(R.id.main_banner_title);
+        val activity = requireActivity()
+
+        val title = activity.findViewById<TextView>(R.id.main_banner_title);
         title.setText(R.string.select_server_title)
+
+        val infoButton = activity.findViewById<ImageButton>(R.id.info_button)
+        infoButton.setOnClickListener { showInfoButton() }
+        infoButton.visibility = View.VISIBLE
+
+        // Request permissions
+        this.requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            Log.d(TAG, "Permission granted: $isGranted")
+        }
 
 
         // Request vpn permission callback
@@ -73,9 +101,10 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
     }
 
     private fun createVpnConnection() {
+        // TODO: Check permissions
         Log.d(TAG, "Creating VPN connection...");
 
-        if (this.selectedServer != null && this.context != null) {
+        if (this.selectedServer != null && this.context != null && this.hasRequiredPermissions()) {
             val arguments = Bundle();
             arguments.putString(ConnectingFragment.SERVER_NAME, this.selectedServer)
 
@@ -86,26 +115,69 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
         }
     }
 
+    private fun hasRequiredPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager =
+                this.requireActivity().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.d(TAG, "Missing 'canScheduleExecuteAlarms' permission.")
+                this.requestScheduleExactAlarmPermission()
+
+                return false
+            } else if (ContextCompat.checkSelfPermission(
+                    this.requireContext(),
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                this.requestNotificationsPermission()
+
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private fun requestScheduleExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            RequestAlarmDialog().show(this.parentFragmentManager, "ENABLE_SCHEDULE_EXACT_ALARM")
+        }
+    }
+
+    private fun requestNotificationsPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            RequestPermissionDialog(
+                this.getString(R.string.enable_notifications_title),
+                this.getString(R.string.enable_exact_alarm_message),
+                Manifest.permission.POST_NOTIFICATIONS,
+                this.requestPermissionLauncher
+            ).show(this.parentFragmentManager, "REQUEST_NOTIFICATIONS_PERMISSION")
+        }
+    }
+
     // TODO: Add loader
     private fun loadServersListView(listView: ListView) {
         // Get the servers list
-        VeronymousClient.getServers(this.context, object : VeronymousTaskListener<Array<String>> {
-            override fun onResult(servers: Array<String>) {
-                Log.d(TAG, "Got list of servers.")
-                Log.d(TAG, "Populating servers adapter.")
+        VeronymousClient.getServers(
+            this.context,
+            object : VeronymousTaskListener<Array<String>> {
+                override fun onResult(servers: Array<String>) {
+                    Log.d(TAG, "Got list of servers.")
+                    Log.d(TAG, "Populating servers adapter.")
 
-                activity?.runOnUiThread {
-                    populateServersListView(listView, servers)
+                    activity?.runOnUiThread {
+                        populateServersListView(listView, servers)
+                    }
                 }
-            }
 
-            override fun onError(e: VeronymousClientException?) {
-                Log.d(TAG, "Could not get servers.", e)
+                override fun onError(e: VeronymousClientException?) {
+                    Log.d(TAG, "Could not get servers.", e)
 
-                // TODO: Handle error
-            }
+                    // TODO: Handle error
+                }
 
-        })
+            })
     }
 
     private fun populateServersListView(listView: ListView, servers: Array<String>) {
@@ -147,4 +219,10 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
         return this.selectedServer != null;
     }
 
+    private fun showInfoButton() {
+        InfoDialog(
+            this.getString(R.string.select_server_title),
+            this.getString(R.string.select_server_info)
+        ).show(this.parentFragmentManager, "AUTH_INFO")
+    }
 }

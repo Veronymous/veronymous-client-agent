@@ -9,7 +9,8 @@
     <string name="disconnect">Disconnect</string>
     <string name="veronymous">Veronymous</string>
     <string name="select_server_title">Select Location</string>
-    <string name="authenticate_title">Get ZK Credentials</string>
+    <string name="get_zk_creds_title">Get ZK Credentials</string>
+    <string name="get_zk_creds_full_title">Get Zero-Knowledge Credentials</string>
     <string name="connecting_title">Connecting</string>
     <string name="connecting_to_location">Connecting to %s…</string>
     <string name="connected_title">Connected</string>
@@ -17,6 +18,16 @@
     <string name="disconnecting">Disconnecting…</string>
     <string name="disconnecting_title">Disconnecting</string>
     <string name="continue_title">Continue</string>
+    <string name="OK">OK</string>
     <string name="invalid_email_or_password_message">Invalid email address or password. Please try again or reset password at veronymous.io.</string>
     <string name="subscription_required_message">A subscription is required to continue. Please subscribe at veronymous.io.</string>
+    <string name="get_zk_creds_info">Fetch zero-knowledge credentials that will allow you to anonymously authenticate and connect to Veronymous VPN servers.</string>
+    <string name="connected_info">You are connected to the VPN server and can now browse the internet securely and privately.</string>
+    <string name="select_server_info">Select the VPN server location to which you want to connect.</string>
+    <string name="register_message">Don\'t have an account? Click here to register.</string>
+    <string name="enable_exact_alarm_title">Enable Alarms &amp; Reminders</string>
+    <string name="enable_exact_alarm_message">In order for the application to work correctly, you must enable "Alarms &amp; Reminders" in the app settings.</string>
+    <string name="enable">enable</string>
+    <string name="enable_notifications_title">Enable Notifications</string>
+    <string name="enable_notifications_message">In order for the application to work correctly, you must enable notifications in the app settings.</string>
 </resources>

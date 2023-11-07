@@ -11,6 +11,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
@@ -19,6 +20,7 @@ import io.veronymous.android.veronymous.client.VeronymousClient
 import io.veronymous.android.veronymous.client.listener.VeronymousTaskListener
 import io.veronymous.android.veronymous.client.status.AuthStatus
 import io.veronymous.android.vpn.app.R
+import io.veronymous.android.vpn.app.ui.dialog.InfoDialog
 import io.veronymous.client.exceptions.VeronymousClientException
 
 class AuthFragment : Fragment(R.layout.login_fragment) {
@@ -32,13 +34,23 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
         private const val SUBSCRIPTIONS_URL = "https://veronymous.io/portal/subscriptions"
     }
 
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val title = this.requireActivity().findViewById<TextView>(R.id.main_banner_title);
-        title.setText(R.string.authenticate_title)
+        val activity = this.requireActivity()
+
+        val title = activity.findViewById<TextView>(R.id.main_banner_title);
+        title.setText(R.string.get_zk_creds_title)
+
+        val infoButton = activity.findViewById<ImageButton>(R.id.info_button)
+        infoButton.setOnClickListener { showInfoButton() }
+        infoButton.visibility = View.VISIBLE
 
         val emailInput = view.findViewById<EditText>(R.id.auth_email_input);
         val passwordInput = view.findViewById<EditText>(R.id.auth_password_input);
+
+        val registerMessage = view.findViewById<TextView>(R.id.auth_register_message)
+        registerMessage.setOnClickListener {
+            this.goToSubscribe()
+        }
 
         val authFailedMessage = view.findViewById<TextView>(R.id.auth_error_message)
         authFailedMessage.setOnClickListener {
@@ -47,7 +59,14 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
 
         val authButton = view.findViewById<Button>(R.id.auth_button);
 
-        authButton.setOnClickListener { authenticate(emailInput, passwordInput, authFailedMessage) }
+        authButton.setOnClickListener {
+            authenticate(
+                emailInput,
+                passwordInput,
+                authFailedMessage,
+                registerMessage
+            )
+        }
 
         super.onViewCreated(view, savedInstanceState)
     }
@@ -55,12 +74,14 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     private fun authenticate(
         emailInput: EditText,
         passwordInput: EditText,
-        authErrorMessage: TextView
+        authErrorMessage: TextView,
+        registerMessage: TextView
     ) {
         Log.d(TAG, "Authenticating...");
 
         // Reset the auth error message view
         authErrorMessage.visibility = View.INVISIBLE
+//        registerMessage.visibility = View.VISIBLE
 
         val email = emailInput.text.toString()
         val password = passwordInput.text.toString()
@@ -78,13 +99,15 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
                         AuthStatus.SUBSCRIPTION_REQUIRED -> handleSubscriptionRequired(
                             emailInput,
                             passwordInput,
-                            authErrorMessage
+                            authErrorMessage,
+                            registerMessage
                         )
 
                         AuthStatus.AUTHENTICATION_REQUIRED -> handleAuthFailed(
                             emailInput,
                             passwordInput,
-                            authErrorMessage
+                            authErrorMessage,
+                            registerMessage
                         )
 
                         else -> {
@@ -114,11 +137,15 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     private fun handleSubscriptionRequired(
         emailInput: EditText,
         passwordInput: EditText,
-        authErrorMessage: TextView
+        authErrorMessage: TextView,
+        registerMessage: TextView
     ) {
         this.requireActivity().runOnUiThread {
             emailInput.setText("")
             passwordInput.setText("")
+
+
+            registerMessage.visibility = View.INVISIBLE
 
             val message = getString(R.string.subscription_required_message)
             val span =
@@ -142,11 +169,14 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     private fun handleAuthFailed(
         emailInput: EditText,
         passwordInput: EditText,
-        authErrorMessage: TextView
+        authErrorMessage: TextView,
+        registerMessage: TextView
     ) {
         this.requireActivity().runOnUiThread {
             emailInput.setText("")
             passwordInput.setText("")
+
+            registerMessage.visibility = View.INVISIBLE
 
             val message = getString(R.string.invalid_email_or_password_message)
             val span =
@@ -169,5 +199,12 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     private fun goToSubscribe() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(SUBSCRIPTIONS_URL))
         startActivity(intent)
+    }
+
+    private fun showInfoButton() {
+        InfoDialog(
+            this.getString(R.string.get_zk_creds_full_title),
+            this.getString(R.string.get_zk_creds_info)
+        ).show(this.parentFragmentManager, "AUTH_INFO")
     }
 }
