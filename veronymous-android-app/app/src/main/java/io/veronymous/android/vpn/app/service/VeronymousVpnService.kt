@@ -7,10 +7,13 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.IpPrefix
+import android.net.LinkAddress
 import android.net.VpnService
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.Parcel
 import android.os.SystemClock
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
@@ -25,6 +28,7 @@ import com.wireguard.config.Peer
 import com.wireguard.crypto.Key
 import com.wireguard.crypto.KeyPair
 import io.veronymous.android.veronymous.client.VeronymousClient
+import io.veronymous.android.veronymous.client.config.VeronymousConfig
 import io.veronymous.android.veronymous.client.listener.VeronymousTaskListener
 import io.veronymous.android.veronymous.client.model.WireguardConnection
 import io.veronymous.android.vpn.app.R
@@ -32,6 +36,7 @@ import io.veronymous.android.vpn.app.state.VpnState
 import io.veronymous.android.vpn.app.ui.activities.MainActivity
 import io.veronymous.android.vpn.app.wg.VeronymousTunnel
 import io.veronymous.client.exceptions.VeronymousClientException
+import java.net.InetAddress
 import java.time.Instant
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -180,45 +185,61 @@ class VeronymousVpnService : VpnService() {
         // Parse the vpn connection profile
         val connectionProfile = WireguardConnection.fromJson(vpnConnection)
 
-        // Construct the interface
-        val wgInterfaceBuilder = Interface.Builder()
-
-        // Add client addresses
-        for (address: String in connectionProfile.clientAddresses) {
-            wgInterfaceBuilder.addAddress(InetNetwork.parse(address))
-        }
-
-        // Set key pair
-        wgInterfaceBuilder.setKeyPair(KeyPair(Key.fromBase64(connectionProfile.clientPrivateKey)))
-
-        // Set dns
-        wgInterfaceBuilder.addDnsServer(InetNetwork.parse("1.1.1.1").address);
-        wgInterfaceBuilder.addDnsServer(InetNetwork.parse("1.0.0.1").address);
-        wgInterfaceBuilder.addDnsServer(InetNetwork.parse("2606:4700:4700::1111").address)
-        wgInterfaceBuilder.addDnsServer(InetNetwork.parse("2606:4700:4700::1001").address)
-
-
-        val wgInterface = wgInterfaceBuilder.build()
-
-        // Construct the peer (vpn server)
-        val server = Peer.Builder()
-            .addAllowedIp(InetNetwork.parse("0.0.0.0/0"))
-            .addAllowedIp(InetNetwork.parse("::/0"))
-            .setEndpoint(InetEndpoint.parse(connectionProfile.serverEndpoint))
-            .setPublicKey(Key.fromBase64(connectionProfile.serverPublicKey))
-            .build()
-
-        this.wgConfig = Config.Builder()
-            .setInterface(wgInterface)
-            .addPeer(server)
-            .build()
-
-        if (this.backend == null)
-            this.backend = GoBackend(this)
-
-        this.tunnel = VeronymousTunnel()
 
         EXECUTOR.execute {
+            // Construct the interface
+            val wgInterfaceBuilder = Interface.Builder()
+
+            // Add client addresses
+            for (address: String in connectionProfile.clientAddresses) {
+                wgInterfaceBuilder.addAddress(InetNetwork.parse(address))
+            }
+
+            // Set key pair
+            wgInterfaceBuilder.setKeyPair(KeyPair(Key.fromBase64(connectionProfile.clientPrivateKey)))
+
+            // Set dns
+            wgInterfaceBuilder.addDnsServer(InetNetwork.parse("1.1.1.1").address);
+            wgInterfaceBuilder.addDnsServer(InetNetwork.parse("1.0.0.1").address);
+            wgInterfaceBuilder.addDnsServer(InetNetwork.parse("2606:4700:4700::1111").address)
+            wgInterfaceBuilder.addDnsServer(InetNetwork.parse("2606:4700:4700::1001").address)
+
+            // Excluded routes
+            for (hostName in VeronymousConfig.OUT_OF_BAND_HOSTS) {
+                // Resolve the address
+                val address = InetAddress.getByName(hostName)
+
+                // Assemble the prefix
+                val parcel = Parcel.obtain()
+                parcel.setDataPosition(0)
+                parcel.writeByteArray(address.address)
+                parcel.writeInt(32)
+                parcel.setDataPosition(0)
+
+                val ipPrefix = IpPrefix.CREATOR.createFromParcel(parcel)
+
+                wgInterfaceBuilder.excludeRoute(ipPrefix)
+            }
+
+            val wgInterface = wgInterfaceBuilder.build()
+
+            // Construct the peer (vpn server)
+            val server = Peer.Builder()
+                .addAllowedIp(InetNetwork.parse("0.0.0.0/0"))
+                .addAllowedIp(InetNetwork.parse("::/0"))
+                .setEndpoint(InetEndpoint.parse(connectionProfile.serverEndpoint))
+                .setPublicKey(Key.fromBase64(connectionProfile.serverPublicKey))
+                .build()
+
+            this.wgConfig = Config.Builder()
+                .setInterface(wgInterface)
+                .addPeer(server)
+                .build()
+
+            if (this.backend == null)
+                this.backend = GoBackend(this)
+
+            this.tunnel = VeronymousTunnel()
             this.backend!!.setState(this.tunnel!!, Tunnel.State.UP, this.wgConfig)
 
             this.vpnState = VpnState.CONNECTED

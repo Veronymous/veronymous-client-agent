@@ -11,6 +11,11 @@ public class VeronymousConfig {
     // 12 hours
     public static final long KEY_LIFETIME = 43200;
 
+    // Addresses that should be excluded from the tunnel
+    public static final String[] OUT_OF_BAND_HOSTS = {
+            "token-issuer.veronymous.io",
+            "idp.veronymous.io"
+    };
 
     private VeronymousConfig() {
         throw new IllegalStateException("Utility class.");

@@ -20,6 +20,7 @@ import android.widget.TextView
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -116,44 +117,44 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
     }
 
     private fun hasRequiredPermissions(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager =
-                this.requireActivity().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmManager =
+            this.requireActivity().getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Log.d(TAG, "Missing 'canScheduleExecuteAlarms' permission.")
-                this.requestScheduleExactAlarmPermission()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            Log.d(TAG, "Missing 'canScheduleExecuteAlarms' permission.")
+            this.requestScheduleExactAlarmPermission()
 
-                return false
-            } else if (ContextCompat.checkSelfPermission(
-                    this.requireContext(),
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                this.requestNotificationsPermission()
+            return false
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(
+                this.requireContext(),
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d(TAG, "Missing 'POST_NOTIFICATION' permission.")
+            this.requestNotificationsPermission()
 
-                return false
-            }
+            // TODO: Request permission for different sdk versions?
+
+            return false
         }
 
         return true
     }
 
     private fun requestScheduleExactAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            RequestAlarmDialog().show(this.parentFragmentManager, "ENABLE_SCHEDULE_EXACT_ALARM")
-        }
+        RequestAlarmDialog().show(this.parentFragmentManager, "ENABLE_SCHEDULE_EXACT_ALARM")
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun requestNotificationsPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            RequestPermissionDialog(
-                this.getString(R.string.enable_notifications_title),
-                this.getString(R.string.enable_exact_alarm_message),
-                Manifest.permission.POST_NOTIFICATIONS,
-                this.requestPermissionLauncher
-            ).show(this.parentFragmentManager, "REQUEST_NOTIFICATIONS_PERMISSION")
-        }
+        // Notifications permission is required for
+        RequestPermissionDialog(
+            this.getString(R.string.enable_notifications_title),
+            this.getString(R.string.enable_exact_alarm_message),
+            Manifest.permission.POST_NOTIFICATIONS,
+            this.requestPermissionLauncher
+        ).show(this.parentFragmentManager, "REQUEST_NOTIFICATIONS_PERMISSION")
+
     }
 
     // TODO: Add loader
