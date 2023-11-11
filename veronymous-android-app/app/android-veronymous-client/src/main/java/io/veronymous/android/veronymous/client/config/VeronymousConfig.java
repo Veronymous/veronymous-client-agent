@@ -8,9 +8,6 @@ public class VeronymousConfig {
     // 5 minutes
     public static final long EPOCH_BUFFER = 300;
 
-    // 12 hours
-    public static final long KEY_LIFETIME = 43200;
-
     // Addresses that should be excluded from the tunnel
     public static final String[] OUT_OF_BAND_HOSTS = {
             "token-issuer.veronymous.io",

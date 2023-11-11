@@ -57,7 +57,10 @@ dependencies {
     )
 
 //    implementation("com.wireguard.android:tunnel:1.0.20230706")
-    implementation("com.wireguard.android:tunnel:1.0.20231018-excluded-routes")
+//    implementation("com.wireguard.android:tunnel:1.0.20231018-excluded-routes")
+
+    implementation("com.wireguard.android:tunnel:1.0.20230706-excluded-routes")
+
 
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")

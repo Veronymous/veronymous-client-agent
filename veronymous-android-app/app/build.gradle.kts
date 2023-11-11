@@ -82,7 +82,10 @@ dependencies {
         version = "0.1-SNAPSHOT"
     )
 
-    implementation("com.wireguard.android:tunnel:1.0.20230706")
+//    implementation("com.wireguard.android:tunnel:1.0.20230706")
+//    implementation("com.wireguard.android:tunnel:1.0.20231018-excluded-routes")
+
+    implementation("com.wireguard.android:tunnel:1.0.20230706-excluded-routes")
 
     implementation(project(mapOf("path" to ":app:android-veronymous-client")))
 
