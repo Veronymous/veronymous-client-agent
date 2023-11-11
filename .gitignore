@@ -6,3 +6,5 @@ veronymous-client-java/.idea
 .idea/
 veronymous-android-app/app/build
 veronymous-android-app/app/android-veronymous-client/build
+veronymous-android-app/app/release/
+veronymous-android-app/app/debug/

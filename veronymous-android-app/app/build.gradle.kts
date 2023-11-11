@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -75,6 +76,10 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     implementation("androidx.work:work-runtime-ktx:2.8.1")
+
+    implementation(platform("com.google.firebase:firebase-bom:32.5.0"))
+    // TODO: Remove the following?
+    implementation("com.google.firebase:firebase-analytics")
 
     implementation(
         group = "io.veronymous",

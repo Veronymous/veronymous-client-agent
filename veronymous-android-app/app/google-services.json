@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "866363199932",
+    "project_id": "veronymous-vpn-android",
+    "storage_bucket": "veronymous-vpn-android.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866363199932:android:33495b0ae4b7690ad49bb9",
+        "android_client_info": {
+          "package_name": "io.veronymous.android.vpn.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCX3Po8nr2nyvJogKdDtGbxY8UKcvGQL9U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
