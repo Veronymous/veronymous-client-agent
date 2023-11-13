@@ -8,7 +8,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.IpPrefix
-import android.net.LinkAddress
 import android.net.VpnService
 import android.os.Binder
 import android.os.Build
@@ -32,6 +31,7 @@ import io.veronymous.android.veronymous.client.config.VeronymousConfig
 import io.veronymous.android.veronymous.client.listener.VeronymousTaskListener
 import io.veronymous.android.veronymous.client.model.WireguardConnection
 import io.veronymous.android.vpn.app.R
+import io.veronymous.android.vpn.app.service.listener.ConnectionResultListener
 import io.veronymous.android.vpn.app.state.VpnState
 import io.veronymous.android.vpn.app.ui.activities.MainActivity
 import io.veronymous.android.vpn.app.wg.VeronymousTunnel
@@ -74,7 +74,8 @@ class VeronymousVpnService : VpnService() {
         fun connect(
             context: Context,
             requestVpnPermission: ActivityResultLauncher<Intent>,
-            serverName: String
+            serverName: String,
+            resultListener: ConnectionResultListener
         ) {
 
             VeronymousClient.connect(context, serverName, object : VeronymousTaskListener<String> {
@@ -96,11 +97,14 @@ class VeronymousVpnService : VpnService() {
                     serviceIntent.putExtra(SERVER_NAME, serverName)
 
                     context.startService(serviceIntent)
+
+                    resultListener.onSuccess()
                 }
 
                 override fun onError(e: VeronymousClientException?) {
                     Log.d(TAG, "Could not create vpn connection", e)
-                    // TODO: Handle error
+
+                    resultListener.onFailure(e)
                 }
 
             })
@@ -204,22 +208,28 @@ class VeronymousVpnService : VpnService() {
             wgInterfaceBuilder.addDnsServer(InetNetwork.parse("2606:4700:4700::1111").address)
             wgInterfaceBuilder.addDnsServer(InetNetwork.parse("2606:4700:4700::1001").address)
 
+            // Exclude requests from the veronymous application
+            // Prevents veronymous services from detecting which server a client is connected to
+            wgInterfaceBuilder.excludeApplication(this.baseContext.packageName)
+
             // Excluded routes
-            for (hostName in VeronymousConfig.OUT_OF_BAND_HOSTS) {
-                // Resolve the address
-                val address = InetAddress.getByName(hostName)
+            // This is an extra measure for privacy
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                for (hostName in VeronymousConfig.OUT_OF_BAND_HOSTS) {
+                    // Resolve the address
+                    val address = InetAddress.getByName(hostName)
 
-                // Assemble the prefix
-                val parcel = Parcel.obtain()
-                parcel.setDataPosition(0)
-                parcel.writeByteArray(address.address)
-                parcel.writeInt(32)
-                parcel.setDataPosition(0)
+                    // Assemble the prefix
+                    val parcel = Parcel.obtain()
+                    parcel.setDataPosition(0)
+                    parcel.writeByteArray(address.address)
+                    parcel.writeInt(32)
+                    parcel.setDataPosition(0)
 
-                val ipPrefix = IpPrefix.CREATOR.createFromParcel(parcel)
+                    val ipPrefix = IpPrefix.CREATOR.createFromParcel(parcel)
 
-                wgInterfaceBuilder.excludeRoute(ipPrefix)
-            }
+                    wgInterfaceBuilder.excludeRoute(ipPrefix)
+                }
 
             val wgInterface = wgInterfaceBuilder.build()
 
@@ -273,11 +283,9 @@ class VeronymousVpnService : VpnService() {
                     override fun onError(e: VeronymousClientException?) {
                         Log.e(TAG, "Could not create vpn connection.", e)
 
-                        notifyDisconnected()
-                        setForegroundNotification(
+                        stop(
                             "VPN connection refresh failure",
                             "An error has occurred when trying to refresh the VPN connection",
-                            false
                         )
                     }
                 })
@@ -325,6 +333,12 @@ class VeronymousVpnService : VpnService() {
     }
 
     private fun stop() {
+        this.stop(
+            "Disconnected from the VPN",
+            "Your device has been disconnected from the VPN"        )
+    }
+
+    private fun stop(title: String, message: String) {
         Log.d(TAG, "Disconnecting...")
 
         if (this.refreshIntent != null) {
@@ -344,12 +358,10 @@ class VeronymousVpnService : VpnService() {
                 this.connectedServer = null
                 Log.d(TAG, "Successfully disconnected from the vpn server.")
 
-                // TODO: Remove notification
-
                 this.notifyDisconnected()
                 this.setForegroundNotification(
-                    "Disconnected from the VPN",
-                    "Your device has been disconnected from the VPN",
+                    title,
+                    message,
                     false
                 )
             }

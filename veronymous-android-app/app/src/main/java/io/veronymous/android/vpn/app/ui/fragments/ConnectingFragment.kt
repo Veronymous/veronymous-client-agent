@@ -14,7 +14,9 @@ import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import io.veronymous.android.vpn.app.R
 import io.veronymous.android.vpn.app.service.VeronymousVpnService
+import io.veronymous.android.vpn.app.service.listener.ConnectionResultListener
 import io.veronymous.android.vpn.app.ui.config.ServerConfigs
+import io.veronymous.android.vpn.app.ui.dialog.ActionDialog
 
 class ConnectingFragment : Fragment(R.layout.connecting_layout) {
 
@@ -71,7 +73,25 @@ class ConnectingFragment : Fragment(R.layout.connecting_layout) {
             VeronymousVpnService.connect(
                 this.requireActivity(),
                 this.requestVpnPermissionLauncher,
-                this.selectedServer!!
+                this.selectedServer!!,
+                object: ConnectionResultListener {
+                    override fun onSuccess() {
+                        Log.d(TAG, "Successfully created VPN connection.")
+                    }
+
+                    override fun onFailure(e: Exception?) {
+                        Log.d(TAG, "Could not establish VPN connection.", e)
+
+                        ActionDialog(
+                            getString(R.string.could_not_connect_title),
+                            getString(R.string.could_not_connect_message)
+                        ) {
+                            goToServersView()
+                        }.show(parentFragmentManager, "CONNECTION_ERROR")
+
+                    }
+
+                }
             )
     }
 
