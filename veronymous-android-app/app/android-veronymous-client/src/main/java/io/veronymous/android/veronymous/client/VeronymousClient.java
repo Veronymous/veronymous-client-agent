@@ -142,6 +142,17 @@ public class VeronymousClient {
                     attempts++;
                 }
 
+                if (connectResult.isAuthRequired()) {
+                    listener.onError(new VpnConnectionException("Authentication is required"));
+                    return;
+                }
+
+                if (connectResult.isSubscriptionRequired()) {
+                    resetClientState(context);
+                    listener.onError(new VpnConnectionException(""));
+                    return;
+                }
+
                 if (connectResult.hasError()) {
                     listener.onError(new VpnConnectionException(connectResult.getError()));
                     return;
@@ -207,6 +218,15 @@ public class VeronymousClient {
             return VeronymousClientJni.newClientState();
         else
             return IOUtils.readString(context, file);
+    }
+
+    private static void resetClientState(Context context) {
+        File file = new File(context.getFilesDir(), CLIENT_STATE);
+
+        if (!file.exists())
+            return;
+
+        file.delete();
     }
 
     private static void saveClientState(Context context, String clientState)

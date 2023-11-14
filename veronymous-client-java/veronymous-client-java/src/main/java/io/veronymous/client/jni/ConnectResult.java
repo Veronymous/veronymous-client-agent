@@ -10,6 +10,7 @@ public class ConnectResult {
     private final boolean hasError;
     private final String error;
     private final boolean authRequired;
+    private final boolean subscriptionRequired;
     private final String clientState;
     private final ServersStateResult serversStateResult;
 
@@ -17,12 +18,14 @@ public class ConnectResult {
                          boolean hasError,
                          String error,
                          boolean authRequired,
+                         boolean subscriptionRequired,
                          String clientState,
                          ServersStateResult serversStateResult) {
         this.vpnConnection = vpnConnection;
         this.hasError = hasError;
         this.error = error;
         this.authRequired = authRequired;
+        this.subscriptionRequired = subscriptionRequired;
         this.clientState = clientState;
         this.serversStateResult = serversStateResult;
     }
@@ -43,6 +46,10 @@ public class ConnectResult {
 
     public boolean isAuthRequired() {
         return authRequired;
+    }
+
+    public boolean isSubscriptionRequired() {
+        return subscriptionRequired;
     }
 
     public String getClientState() throws IllegalStateException, UnauthorizedException {

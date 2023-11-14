@@ -137,8 +137,13 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_connect
     });
 
     // Process the connect result
-    let (java_vpn_connection, java_auth_required, java_has_error, java_error) = match connect_result
-    {
+    let (
+        java_vpn_connection,
+        java_auth_required,
+        java_subscription_required,
+        java_has_error,
+        java_error,
+    ) = match connect_result {
         Ok(vpn_connection) => {
             let vpn_connection_json =
                 to_string(&vpn_connection).expect("Could not serialize vpn connection to json.");
@@ -151,12 +156,21 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_connect
                 java_vpn_connection,
                 JValue::Bool(false as jboolean),
                 JValue::Bool(false as jboolean),
+                JValue::Bool(false as jboolean),
                 JObject::null(),
             )
         }
         Err(error) => match error {
             VeronymousClientError::AuthRequired() => (
                 JObject::null(),
+                JValue::Bool(true as jboolean),
+                JValue::Bool(false as jboolean),
+                JValue::Bool(false as jboolean),
+                JObject::null(),
+            ),
+            VeronymousClientError::SubscriptionRequired() => (
+                JObject::null(),
+                JValue::Bool(false as jboolean),
                 JValue::Bool(true as jboolean),
                 JValue::Bool(false as jboolean),
                 JObject::null(),
@@ -169,6 +183,7 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_connect
 
                 (
                     JObject::null(),
+                    JValue::Bool(false as jboolean),
                     JValue::Bool(false as jboolean),
                     JValue::Bool(true as jboolean),
                     java_error,
@@ -196,7 +211,7 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_connect
         .new_object(
             CONNECT_RESULT_CLASS,
             format!(
-                "(Ljava/lang/String;ZLjava/lang/String;ZLjava/lang/String;L{};)V",
+                "(Ljava/lang/String;ZLjava/lang/String;ZZLjava/lang/String;L{};)V",
                 SERVERS_STATE_RESULT
             ),
             &[
@@ -204,6 +219,7 @@ pub extern "system" fn Java_io_veronymous_client_jni_VeronymousClientJni_connect
                 java_has_error,
                 JValue::Object(&java_error),
                 java_auth_required,
+                java_subscription_required,
                 JValue::Object(&java_client_state),
                 JValue::Object(&java_servers_state),
             ],
