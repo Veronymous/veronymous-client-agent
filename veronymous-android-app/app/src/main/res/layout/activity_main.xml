@@ -15,7 +15,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/main_activity_fragment_container"
-        android:name="io.veronymous.android.vpn.app.ui.fragments.HomeFragment"
+        android:name="io.veronymous.vpn.android.app.ui.fragments.HomeFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"

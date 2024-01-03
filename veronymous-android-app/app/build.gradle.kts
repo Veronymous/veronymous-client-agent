@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.veronymous.android.vpn.app"
+    namespace = "io.veronymous.vpn.android.app"
     compileSdk = 33
 
     defaultConfig {
-        applicationId = "io.veronymous.android.vpn.app"
+        applicationId = "io.veronymous.vpn.android.app"
         minSdk = 28
         targetSdk = 33
         versionCode = 1
