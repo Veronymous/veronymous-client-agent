@@ -18,7 +18,7 @@ import io.veronymous.vpn.android.app.service.listener.ConnectionResultListener
 import io.veronymous.vpn.android.app.ui.config.ServerConfigs
 import io.veronymous.vpn.android.app.ui.dialog.ActionDialog
 
-class ConnectingFragment : Fragment(R.layout.connecting_layout) {
+class ConnectingFragment : AppFragment(R.layout.connecting_layout) {
 
     companion object {
         const val SERVER_NAME = "server_name";
@@ -35,12 +35,14 @@ class ConnectingFragment : Fragment(R.layout.connecting_layout) {
     private lateinit var requestVpnPermissionLauncher: ActivityResultLauncher<Intent>
 
     private var selectedServer: String? = null;
+    override fun showInfoPrompt() {
+        // Do nothing
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val title = this.requireActivity().findViewById<TextView>(R.id.main_banner_title);
-        title.setText(R.string.connecting_title)
+        this.requireActivity().actionBar?.setTitle(R.string.connecting_title)
 
         // Request vpn permission callback
         this.requestVpnPermissionLauncher =

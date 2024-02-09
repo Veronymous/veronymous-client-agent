@@ -12,7 +12,7 @@ android {
         applicationId = "io.veronymous.vpn.android.app"
         minSdk = 28
         targetSdk = 33
-        versionCode = 3
+        versionCode = 5
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

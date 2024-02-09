@@ -10,4 +10,5 @@
     <color name="veron">#7209b7</color>
     <color name="verony_opac_50">#807209B7</color>
     <color name="red">#FF0000</color>
+    <color name="blue_selected">#3498db</color>
 </resources>

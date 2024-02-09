@@ -4,10 +4,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
@@ -23,12 +27,15 @@ import io.veronymous.vpn.android.app.ui.fragments.ConnectionFragment
 import io.veronymous.vpn.android.app.ui.fragments.SelectServerFragment
 import io.veronymous.client.exceptions.VeronymousClientException
 import io.veronymous.vpn.android.app.R
+import io.veronymous.vpn.android.app.ui.fragments.AppFragment
 
 
 class MainActivity : FragmentActivity(R.layout.activity_main) {
 
     companion object {
         private val TAG = MainActivity::class.simpleName
+
+        private val PRIVACY_POLICY_URL = Uri.parse("https://veronymous.io/privacyPolicy")
     }
 
     private lateinit var broadcastReceiver: ConnectionUpdateBroadcastReceiver;
@@ -56,6 +63,13 @@ class MainActivity : FragmentActivity(R.layout.activity_main) {
 
         Log.d(TAG, "VeronymousVPN 'OnCreate'.");
 
+        this.actionBar?.setLogo(R.drawable.logo_without_name_white_65_65)
+        this.actionBar?.setBackgroundDrawable(this.getDrawable(R.drawable.veron_solid))
+        this.actionBar?.elevation = 0F;
+
+        this.actionBar?.setDisplayShowHomeEnabled(true);
+        this.actionBar?.setDisplayUseLogoEnabled(true);
+
         this.broadcastReceiver = ConnectionUpdateBroadcastReceiver(this)
 
         ContextCompat.registerReceiver(
@@ -65,6 +79,23 @@ class MainActivity : FragmentActivity(R.layout.activity_main) {
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
         this.broadcastReceiverRegistered = true;
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        this.menuInflater.inflate(R.menu.menu_options, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (R.id.option_about == item.itemId) {
+            this.showFragmentInfo()
+            return true
+        } else if (R.id.option_privacy_policy == item.itemId) {
+            this.showPrivacyPolicy()
+            return true
+        }
+
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onStart() {
@@ -116,6 +147,20 @@ class MainActivity : FragmentActivity(R.layout.activity_main) {
         }
     }
 
+    private fun showPrivacyPolicy() {
+        val intent = Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL)
+        startActivity(intent)
+    }
+
+    private fun showFragmentInfo() {
+        val currentFragment =
+            this.supportFragmentManager.findFragmentById(R.id.main_activity_fragment_container)
+
+        if (currentFragment == null || currentFragment !is AppFragment)
+            return
+
+        currentFragment.showInfoPrompt()
+    }
 
     private fun updateView() {
         Log.d(TAG, "Updating view...")

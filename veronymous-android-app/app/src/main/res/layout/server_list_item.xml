@@ -8,7 +8,10 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/server_name_container"
         android:layout_width="0dp"
-        android:layout_height="65dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/rounded_bg_white"
+        android:outlineSpotShadowColor="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,15 +28,15 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <View
-            android:id="@+id/server_name_underline"
-            android:layout_width="wrap_content"
-            android:layout_height="2dp"
-            android:background="@drawable/veron_solid"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+        <!--        <View-->
+        <!--            android:id="@+id/server_name_underline"-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="2dp"-->
+        <!--            android:background="@drawable/veron_solid"-->
+        <!--            android:visibility="invisible"-->
+        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent"-->
+        <!--            app:layout_constraintStart_toStartOf="parent" />-->
 
         <ImageView
             android:id="@+id/server_flag_view"

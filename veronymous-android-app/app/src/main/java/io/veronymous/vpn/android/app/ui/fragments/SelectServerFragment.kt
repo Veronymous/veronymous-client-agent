@@ -33,7 +33,7 @@ import io.veronymous.vpn.android.app.ui.fragments.adapters.ServerListAdapter
 import io.veronymous.client.exceptions.VeronymousClientException
 import io.veronymous.vpn.android.app.R
 
-class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
+class SelectServerFragment : AppFragment(R.layout.select_server_fragment) {
 
     companion object {
         private val TAG = SelectServerFragment::class.simpleName
@@ -46,18 +46,19 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
     private lateinit var requestVpnPermissionLauncher: ActivityResultLauncher<Intent>
 
     private lateinit var connectButton: Button
+    override fun showInfoPrompt() {
+        InfoDialog(
+            this.getString(R.string.select_server_title),
+            this.getString(R.string.select_server_info)
+        ).show(this.parentFragmentManager, "AUTH_INFO")
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val activity = requireActivity()
 
-        val title = activity.findViewById<TextView>(R.id.main_banner_title);
-        title.setText(R.string.select_server_title)
-
-        val infoButton = activity.findViewById<ImageButton>(R.id.info_button)
-        infoButton.setOnClickListener { showInfoButton() }
-        infoButton.visibility = View.VISIBLE
+        activity.actionBar?.setTitle(R.string.select_server_title)
 
         // Request permissions
         this.requestPermissionLauncher = registerForActivityResult(
@@ -214,12 +215,5 @@ class SelectServerFragment : Fragment(R.layout.select_server_fragment) {
 
     private fun isServerSelected(): Boolean {
         return this.selectedServer != null;
-    }
-
-    private fun showInfoButton() {
-        InfoDialog(
-            this.getString(R.string.select_server_title),
-            this.getString(R.string.select_server_info)
-        ).show(this.parentFragmentManager, "AUTH_INFO")
     }
 }

@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import io.veronymous.vpn.android.app.R
 import io.veronymous.vpn.android.app.ui.config.ServerConfigs
 
@@ -40,7 +41,6 @@ class ServerListAdapter(
 
         val serverConfig = ServerConfigs.SERVERS[serverName];
 
-
         val serverNameView = view.findViewById<TextView>(R.id.server_name)
         if (serverConfig != null) {
             serverNameView.text = serverConfig.displayName
@@ -50,13 +50,22 @@ class ServerListAdapter(
         } else
             serverNameView.text = serverName
 
+        // TODO: Create select view
 
-        // Set underline
-        val underline = view.findViewById<View>(R.id.server_name_underline);
-        if (this.selectedPosition == position)
-            underline.visibility = View.VISIBLE;
-        else
-            underline.visibility = View.INVISIBLE
+        val container = view.findViewById<View>(R.id.server_name_container);
+
+        if (this.selectedPosition == position) {
+            container.setBackgroundResource(R.drawable.rounded_bg_white_selected)
+        } else {
+            container.setBackgroundResource(R.drawable.rounded_bg_white);
+        }
+
+//        // Set underline
+//        val underline = view.findViewById<View>(R.id.server_name_underline);
+//        if (this.selectedPosition == position)
+//            underline.visibility = View.VISIBLE;
+//        else
+//            underline.visibility = View.INVISIBLE
 
 
         return view;

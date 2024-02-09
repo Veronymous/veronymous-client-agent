@@ -14,7 +14,7 @@ import io.veronymous.vpn.android.app.R
 import io.veronymous.vpn.android.app.ui.config.ServerConfigs
 import io.veronymous.vpn.android.app.ui.dialog.InfoDialog
 
-class ConnectionFragment : Fragment(R.layout.connection_fragment) {
+class ConnectionFragment : AppFragment(R.layout.connection_fragment) {
 
     companion object {
         private val TAG = ConnectionFragment::class.simpleName
@@ -39,17 +39,19 @@ class ConnectionFragment : Fragment(R.layout.connection_fragment) {
         }
     }
 
+    override fun showInfoPrompt() {
+        InfoDialog(
+            this.getString(R.string.connected_title),
+            this.getString(R.string.connected_info)
+        ).show(this.parentFragmentManager, "AUTH_INFO")
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val activity = requireActivity()
 
-        val title = activity.findViewById<TextView>(R.id.main_banner_title);
-        title.setText(R.string.connected_title)
-
-        val infoButton = activity.findViewById<ImageButton>(R.id.info_button)
-        infoButton.setOnClickListener { showInfoButton() }
-        infoButton.visibility = View.VISIBLE
+        activity.actionBar?.setTitle(R.string.connected_title)
 
         val serverNameView = view.findViewById<TextView>(R.id.connected_server_text_view)
         val serverFlagView = view.findViewById<ImageView>(R.id.connected_server_flag_view);
@@ -73,10 +75,4 @@ class ConnectionFragment : Fragment(R.layout.connection_fragment) {
         }
     }
 
-    private fun showInfoButton() {
-        InfoDialog(
-            this.getString(R.string.connected_title),
-            this.getString(R.string.connected_info)
-        ).show(this.parentFragmentManager, "AUTH_INFO")
-    }
 }

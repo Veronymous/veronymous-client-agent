@@ -11,7 +11,6 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
@@ -23,7 +22,7 @@ import io.veronymous.vpn.android.app.ui.dialog.InfoDialog
 import io.veronymous.client.exceptions.VeronymousClientException
 import io.veronymous.vpn.android.app.R
 
-class AuthFragment : Fragment(R.layout.login_fragment) {
+class AuthFragment : AppFragment(R.layout.login_fragment) {
 
     companion object {
         private val TAG = AuthFragment::class.simpleName;
@@ -37,12 +36,7 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val activity = this.requireActivity()
 
-        val title = activity.findViewById<TextView>(R.id.main_banner_title);
-        title.setText(R.string.get_zk_creds_title)
-
-        val infoButton = activity.findViewById<ImageButton>(R.id.info_button)
-        infoButton.setOnClickListener { showInfoButton() }
-        infoButton.visibility = View.VISIBLE
+        activity.actionBar?.setTitle(R.string.get_zk_creds_title)
 
         val emailInput = view.findViewById<EditText>(R.id.auth_email_input);
         val passwordInput = view.findViewById<EditText>(R.id.auth_password_input);
@@ -201,7 +195,7 @@ class AuthFragment : Fragment(R.layout.login_fragment) {
         startActivity(intent)
     }
 
-    private fun showInfoButton() {
+    override fun showInfoPrompt() {
         InfoDialog(
             this.getString(R.string.get_zk_creds_full_title),
             this.getString(R.string.get_zk_creds_info)
